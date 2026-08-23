@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">iDepth 26 Wallpapers</string>
+    <string name="developer_name">ChilenoAPPS</string>
+    <string name="support_email">Defina antes de publicar</string>
+    <string name="privacy_url">Defina antes de publicar</string>
+
+    <string name="wallpaper_service_name">iDepth 26 Live Wallpaper</string>
+    <string name="wallpaper_description">Wallpaper ao vivo com profundidade espacial, camadas e movimento por sensores.</string>
+</resources>

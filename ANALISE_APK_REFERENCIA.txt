@@ -1,0 +1,43 @@
+APK analisado: Depth Live Wallpaper v2.1.06 (PREMIUM)
+
+Identificação observada:
+- package: com.jndapp.depth.live.wallpaper
+- versionName: 2.1.06
+- versionCode: 35
+- minSdk: 27
+- targetSdk: 36
+
+Componentes principais observados:
+- com.jndapp.depth.live.wallpaper.MainActivity
+- com.jndapp.depth.live.wallpaper.ClockLiveWallpaperService
+- com.jndapp.depth.live.wallpaper.services.FloatingStudioService
+- AutoWallpaperManager
+- FavouriteWallpaperManager
+- WallpaperRepository / CategoryRepository / BannerRepository
+
+Funções observáveis encontradas:
+- Live wallpaper
+- Depth Layering
+- Gyroscope 3D Effect
+- Parallax Drift
+- Clock Wallpaper / Clock Settings
+- Auto Wallpaper Changer
+- Favorites
+- Categories / Explore / Wallpapers
+- Premium / Billing
+- Ads / analytics / push notifications
+- Backend remoto (Supabase)
+
+Proteções / serviços de terceiros observados:
+- Google Play Billing 8.3.0
+- CHECK_LICENSE
+- com.pairip.application.Application
+- Firebase
+- OneSignal
+- Google Mobile Ads
+- Facebook SDK
+
+Decisão de implementação:
+- Recriar as funções centrais de forma independente.
+- Não copiar ou reempacotar o código original.
+- Não remover, alterar ou contornar Premium/licença/PairIP.

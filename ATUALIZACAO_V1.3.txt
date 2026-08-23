@@ -1,0 +1,14 @@
+iDepth 26 Wallpapers — ChilenoAPPS v1.3.0
+
+Ajuste reconstruído com base no comportamento observado no APK de referência:
+- tela própria de ajuste do wallpaper
+- arrastar com 1 dedo para reposicionar (pan)
+- gesto de pinça com 2 dedos para zoom/escala
+- toque duplo para redefinir
+- Salvar / Redefinir / Cancelar
+- transformação salva e aplicada no Live Wallpaper
+- preview mostra relógio e primeira camada
+- relógio agora tem parallax próprio em plano intermediário
+- controle de intensidade da profundidade do relógio
+
+O código foi recriado; não contém código proprietário do APK de referência.

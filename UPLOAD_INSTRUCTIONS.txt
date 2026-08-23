@@ -1,0 +1,15 @@
+PACOTE COMPLETO v1.3.0 — ChilenoAPPS
+
+Este pacote substitui a versão anterior inteira.
+Não é necessário editar arquivos individualmente.
+
+Principais mudanças:
+- ajuste do wallpaper por arrastar com 1 dedo
+- zoom por pinça com 2 dedos
+- toque duplo redefine o enquadramento
+- Salvar / Redefinir / Cancelar
+- posição e escala salvas no live wallpaper
+- relógio com parallax de profundidade próprio
+- controle de profundidade do relógio
+- 20 wallpapers continuam incluídos offline
+- workflow do GitHub Actions corrigido incluso em .github/workflows/build-apk.yml

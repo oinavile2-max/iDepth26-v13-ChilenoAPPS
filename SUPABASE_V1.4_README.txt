@@ -1,0 +1,15 @@
+PARA A TABELA wallpapers ALIMENTAR O APK AUTOMATICAMENTE
+
+1. Supabase > Edge Functions > Create Function.
+2. Nome: wallpaper-catalog
+3. Cole o conteúdo de SUPABASE_WALLPAPER_CATALOG_EDGE_FUNCTION.ts.
+4. Deploy.
+5. Settings > deixe "Verify JWT with legacy secret" DESLIGADO.
+6. Teste abrindo:
+   https://eyxwgmcxullybhsqboqh.supabase.co/functions/v1/wallpaper-catalog
+
+O APK v1.4 tenta esse endpoint primeiro.
+Se ele ainda não existir, usa automaticamente:
+https://eyxwgmcxullybhsqboqh.supabase.co/storage/v1/object/public/idepth26/catalog.json
+
+Assim o app já funciona com o catálogo atual e passa a ler a tabela assim que a nova Edge Function for implantada.

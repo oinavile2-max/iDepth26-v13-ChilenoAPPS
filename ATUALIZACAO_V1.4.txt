@@ -1,0 +1,17 @@
+iDepth 26 Wallpapers v1.4.0 — ChilenoAPPS
+
+NOVO
+- Navegação por abas: Início, Categorias, Favoritos e Ajustes.
+- Catálogo remoto Supabase com cache offline.
+- Fallback automático para catalog.json do Storage.
+- Categorias remotas sem necessidade de atualizar o APK.
+- Favoritos locais para wallpapers offline e online.
+- Download sob demanda de wallpapers online e cache no aparelho.
+- Botão oficial do Telegram: @iDepth26Wallpapers.
+- Mantidos os 20 wallpapers offline.
+- Mantido o ajuste por arrastar + pinçar.
+- Mantidos parallax/giroscópio e relógio em plano intermediário.
+
+IMPORTANTE
+O endpoint wallpaper-catalog é a fonte principal da tabela public.wallpapers.
+Enquanto ele não estiver implantado no Supabase, o app usa automaticamente o catalog.json público já existente.
