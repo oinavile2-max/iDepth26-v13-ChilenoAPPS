@@ -1,0 +1,44 @@
+name: Build iDepth 26 v1.4 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Compilar APK
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Renomear APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk iDepth26-v1.4-ChilenoAPPS.apk
+
+      - name: APK para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: iDepth26-v1.4-ChilenoAPPS
+          path: iDepth26-v1.4-ChilenoAPPS.apk
