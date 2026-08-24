@@ -11,7 +11,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -45,18 +44,23 @@ public class DepthWallpaperService extends WallpaperService {
         private final Paint imagePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         private final Paint clockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint datePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint shadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Runnable drawRunnable = this::drawFrame;
         private final SharedPreferences prefs = Prefs.get(DepthWallpaperService.this);
+
         private SensorManager sensorManager;
         private Sensor rotationSensor;
         private Bitmap background;
         private Bitmap foreground;
         private boolean visible;
-        private float targetX, targetY, currentX, currentY;
+        private float targetX, targetY;
+        private float currentX, currentY;
+        private float velocityX, velocityY;
         private String lastKey = "";
 
         private final BroadcastReceiver refreshReceiver = new BroadcastReceiver() {
-            @Override public void onReceive(Context context, Intent intent) {
+            @Override
+            public void onReceive(Context context, Intent intent) {
                 loadSelectedLayers(true);
                 drawFrame();
             }
@@ -69,17 +73,13 @@ public class DepthWallpaperService extends WallpaperService {
             rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
             if (rotationSensor == null) rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
-            clockPaint.setColor(Color.WHITE);
             clockPaint.setTextAlign(Paint.Align.CENTER);
-            datePaint.setColor(0xEFFFFFFF);
             datePaint.setTextAlign(Paint.Align.CENTER);
 
             IntentFilter filter = new IntentFilter(ACTION_REFRESH);
-            if (Build.VERSION.SDK_INT >= 33) {
-                registerReceiver(refreshReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-            } else {
-                registerReceiver(refreshReceiver, filter);
-            }
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(refreshReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            else registerReceiver(refreshReceiver, filter);
+
             loadSelectedLayers(true);
         }
 
@@ -96,9 +96,7 @@ public class DepthWallpaperService extends WallpaperService {
         public void onVisibilityChanged(boolean visible) {
             this.visible = visible;
             if (visible) {
-                if (rotationSensor != null) {
-                    sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_GAME);
-                }
+                if (rotationSensor != null) sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_GAME);
                 loadSelectedLayers(false);
                 drawFrame();
             } else {
@@ -127,21 +125,19 @@ public class DepthWallpaperService extends WallpaperService {
             float[] orientation = new float[3];
             SensorManager.getRotationMatrixFromVector(matrix, event.values);
             SensorManager.getOrientation(matrix, orientation);
-            targetX = clamp(orientation[2] / 0.55f, -1f, 1f);
-            targetY = clamp(orientation[1] / 0.55f, -1f, 1f);
+
+            // Amplitude um pouco maior, mas com suavização de mola para não ficar tremendo.
+            targetX = clamp(orientation[2] / 0.47f, -1f, 1f);
+            targetY = clamp(orientation[1] / 0.52f, -1f, 1f);
         }
 
         @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
         private void loadSelectedLayers(boolean force) {
             String source = prefs.getString(Prefs.SOURCE, Prefs.SOURCE_BUILTIN);
-            if (Prefs.SOURCE_USER.equals(source)) {
-                loadUserImage(force);
-            } else if (Prefs.SOURCE_REMOTE.equals(source)) {
-                loadRemote(force);
-            } else {
-                loadBuiltin(force);
-            }
+            if (Prefs.SOURCE_USER.equals(source)) loadUserImage(force);
+            else if (Prefs.SOURCE_REMOTE.equals(source)) loadRemote(force);
+            else loadBuiltin(force);
         }
 
         private void loadBuiltin(boolean force) {
@@ -165,6 +161,7 @@ public class DepthWallpaperService extends WallpaperService {
                 loadBuiltin(force);
                 return;
             }
+
             Bitmap bg = BitmapFactory.decodeFile(bgPath);
             if (bg == null) {
                 prefs.edit().putString(Prefs.SOURCE, Prefs.SOURCE_BUILTIN).apply();
@@ -209,8 +206,20 @@ public class DepthWallpaperService extends WallpaperService {
             foreground = null;
         }
 
+        private void updateMotion() {
+            // spring + damping: movimento forte, porém estável.
+            float spring = 0.095f;
+            float damping = 0.80f;
+            velocityX = (velocityX + (targetX - currentX) * spring) * damping;
+            velocityY = (velocityY + (targetY - currentY) * spring) * damping;
+            currentX += velocityX;
+            currentY += velocityY;
+        }
+
         private void drawFrame() {
             handler.removeCallbacks(drawRunnable);
+            updateMotion();
+
             SurfaceHolder holder = getSurfaceHolder();
             Canvas canvas = null;
             try {
@@ -218,82 +227,131 @@ public class DepthWallpaperService extends WallpaperService {
                 if (canvas == null) return;
                 canvas.drawColor(Color.BLACK);
 
-                if (background != null) {
-                    drawLayer(canvas, background, 0.52f, 0.00f);
+                if (background == null) {
+                    drawEmpty(canvas);
+                } else {
                     boolean clockEnabled = prefs.getBoolean(Prefs.CLOCK, true);
                     boolean behind = prefs.getBoolean(Prefs.CLOCK_BEHIND, true);
+
+                    drawDepthLayer(canvas, background, 0.34f, -0.38f, 0.000f);
+                    drawAmbientShade(canvas);
+
                     if (clockEnabled && behind) drawClock(canvas);
-                    if (foreground != null) drawLayer(canvas, foreground, 1.18f, 0.018f);
+
+                    if (foreground != null) {
+                        drawDepthLayer(canvas, foreground, 1.20f, 0.78f, 0.032f);
+                    }
+
                     if (clockEnabled && !behind) drawClock(canvas);
-                } else {
-                    drawEmpty(canvas);
                 }
             } finally {
                 if (canvas != null) holder.unlockCanvasAndPost(canvas);
             }
 
-            currentX += (targetX - currentX) * 0.075f;
-            currentY += (targetY - currentY) * 0.075f;
             if (visible) handler.postDelayed(drawRunnable, 33L);
         }
 
-        private void drawLayer(Canvas canvas, Bitmap bitmap, float motionFactor, float extraScale) {
+        private void drawDepthLayer(Canvas canvas, Bitmap bitmap, float plane, float rotationFactor, float extraScale) {
             float cw = canvas.getWidth();
             float ch = canvas.getHeight();
             float bw = bitmap.getWidth();
             float bh = bitmap.getHeight();
+            if (bw <= 0 || bh <= 0) return;
+
             float base = Math.max(cw / bw, ch / bh);
-            float zoom = 1f + (prefs.getInt(Prefs.ZOOM, 38) / 100f) * 0.24f + extraScale;
-            float userScale = Math.max(1f, Math.min(2.2f, prefs.getFloat(Prefs.WALLPAPER_SCALE, 1f)));
-            float scale = base * zoom * userScale;
+            float safety = 1f + (prefs.getInt(Prefs.ZOOM, 40) / 100f) * 0.25f + extraScale;
+            float userScale = clamp(prefs.getFloat(Prefs.WALLPAPER_SCALE, 1f), 1f, 2.2f);
+            float scale = base * safety * userScale;
+
+            // Variação sutil de escala com inclinação aumenta a percepção de profundidade.
+            float parallaxStrength = prefs.getInt(Prefs.PARALLAX, 68) / 100f;
+            float depthStrength = prefs.getInt(Prefs.DEPTH, 78) / 100f;
+            float breathing = 1f + Math.abs(currentY) * 0.010f * depthStrength * plane;
+            scale *= breathing;
+
             float dw = bw * scale;
             float dh = bh * scale;
-            float strength = prefs.getInt(Prefs.DEPTH, 70) / 100f;
             float maxX = Math.max(0f, (dw - cw) / 2f);
             float maxY = Math.max(0f, (dh - ch) / 2f);
-            float savedX = Math.max(-1f, Math.min(1f, prefs.getFloat(Prefs.WALLPAPER_POSITION_X, 0f)));
-            float savedY = Math.max(-1f, Math.min(1f, prefs.getFloat(Prefs.WALLPAPER_POSITION_Y, 0f)));
-            float offsetX = savedX * maxX + currentX * maxX * strength * motionFactor;
-            float offsetY = savedY * maxY + currentY * maxY * strength * motionFactor;
+
+            float savedX = clamp(prefs.getFloat(Prefs.WALLPAPER_POSITION_X, 0f), -1f, 1f);
+            float savedY = clamp(prefs.getFloat(Prefs.WALLPAPER_POSITION_Y, 0f), -1f, 1f);
+
+            float sensorX = currentX * maxX * parallaxStrength * depthStrength * plane;
+            float sensorY = currentY * maxY * parallaxStrength * depthStrength * plane;
+            float offsetX = savedX * maxX + sensorX;
+            float offsetY = savedY * maxY + sensorY;
+
             float left = (cw - dw) / 2f + offsetX;
             float top = (ch - dh) / 2f + offsetY;
+
+            canvas.save();
+            float rotation = currentX * rotationFactor * depthStrength;
+            canvas.rotate(rotation, cw / 2f, ch / 2f);
             canvas.drawBitmap(bitmap, null, new RectF(left, top, left + dw, top + dh), imagePaint);
+            canvas.restore();
+        }
+
+        private void drawAmbientShade(Canvas canvas) {
+            int accent = ThemePalette.accent(prefs);
+            int tint = ThemePalette.withAlpha(accent, 18);
+            shadePaint.setColor(tint);
+            canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), shadePaint);
         }
 
         private void drawClock(Canvas canvas) {
             float width = canvas.getWidth();
             float height = canvas.getHeight();
-            float timeSize = Math.max(60f, width * 0.19f);
-            float dateSize = Math.max(18f, width * 0.043f);
-            float depth = prefs.getInt(Prefs.CLOCK_DEPTH, 70) / 100f;
+            float depth = prefs.getInt(Prefs.CLOCK_DEPTH, 75) / 100f;
+            float parallax = prefs.getInt(Prefs.PARALLAX, 68) / 100f;
+            int size = prefs.getInt(Prefs.CLOCK_SIZE, 100);
+            int yPercent = prefs.getInt(Prefs.CLOCK_Y, 24);
 
-            // O relógio ocupa um plano intermediário: move mais que o fundo e menos que o primeiro plano.
-            float shiftX = currentX * width * 0.042f * depth;
-            float shiftY = currentY * height * 0.022f * depth;
-            float perspective = 1f + currentY * 0.028f * depth;
+            float timeSize = Math.max(62f, width * 0.205f * (size / 100f));
+            float dateSize = Math.max(16f, timeSize * 0.165f);
 
+            // Plano intermediário entre fundo e primeiro plano.
+            float shiftX = currentX * width * 0.050f * depth * parallax;
+            float shiftY = currentY * height * 0.026f * depth * parallax;
+            float perspective = 1f + currentY * 0.034f * depth;
+            float rotation = currentX * 0.50f * depth;
+
+            String font = prefs.getString(Prefs.CLOCK_FONT, "condensed");
+            int color = ThemePalette.autoClockColor(prefs);
+
+            clockPaint.setTypeface(ClockStyles.typeface(font));
+            clockPaint.setColor(color);
             clockPaint.setTextSize(timeSize * perspective);
-            clockPaint.setTypeface(Typeface.create("sans-serif-thin", Typeface.NORMAL));
-            clockPaint.setShadowLayer(12f + 8f * depth, -shiftX * 0.06f, 3f + shiftY * 0.03f, 0x72000000);
+            clockPaint.setShadowLayer(12f + 8f * depth, -shiftX * 0.045f, 3f + shiftY * 0.03f, 0x85000000);
+
+            datePaint.setTypeface(ClockStyles.dateTypeface(font));
+            datePaint.setColor(color);
             datePaint.setTextSize(dateSize * perspective);
-            datePaint.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            datePaint.setShadowLayer(8f + 5f * depth, -shiftX * 0.04f, 2f + shiftY * 0.02f, 0x62000000);
+            datePaint.setShadowLayer(7f + 5f * depth, -shiftX * 0.035f, 2f + shiftY * 0.02f, 0x72000000);
 
             Date now = new Date();
             String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
-            String date = new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(now);
-            float baseline = height * 0.235f + shiftY;
+            String date = new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault())
+                    .format(now).toUpperCase(Locale.getDefault());
+
             float centerX = width / 2f + shiftX;
+            float baseline = height * (yPercent / 100f) + timeSize * 0.82f + shiftY;
+
+            canvas.save();
+            canvas.rotate(rotation, centerX, baseline - timeSize * 0.3f);
             canvas.drawText(time, centerX, baseline, clockPaint);
-            canvas.drawText(date, centerX, baseline + dateSize * 1.7f, datePaint);
+            if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
+                canvas.drawText(date, centerX, baseline - timeSize * 1.06f, datePaint);
+            }
+            canvas.restore();
         }
 
         private void drawEmpty(Canvas canvas) {
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            p.setColor(0xFF9C8BFF);
+            p.setColor(ThemePalette.accent(prefs));
             p.setTextAlign(Paint.Align.CENTER);
             p.setTextSize(Math.max(28f, canvas.getWidth() * 0.06f));
-            canvas.drawText("Abra o app e escolha um wallpaper", canvas.getWidth()/2f, canvas.getHeight()/2f, p);
+            canvas.drawText("Abra o app e escolha um wallpaper", canvas.getWidth() / 2f, canvas.getHeight() / 2f, p);
         }
 
         private float clamp(float v, float min, float max) {

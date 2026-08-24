@@ -12,11 +12,19 @@ import java.net.URL;
 
 final class RemoteAssetStore {
     static Bitmap loadThumbnail(Context context, RemoteWallpaper item) {
-        if (item.thumbnailUrl == null || item.thumbnailUrl.isEmpty()) return null;
+        String thumb = item.thumbnailUrl == null || item.thumbnailUrl.isEmpty()
+                ? item.backgroundUrl : item.thumbnailUrl;
+        if (thumb == null || thumb.isEmpty()) return null;
         File file = thumbFile(context, item.id);
         try {
-            if (!file.exists() || file.length() == 0) download(item.thumbnailUrl, file);
-            return BitmapFactory.decodeFile(file.getAbsolutePath());
+            if (!file.exists() || file.length() == 0) download(thumb, file);
+            Bitmap decoded = BitmapFactory.decodeFile(file.getAbsolutePath());
+            if (decoded == null && file.exists()) {
+                file.delete();
+                download(thumb, file);
+                decoded = BitmapFactory.decodeFile(file.getAbsolutePath());
+            }
+            return decoded;
         } catch (Exception ignored) {
             return null;
         }
@@ -54,7 +62,7 @@ final class RemoteAssetStore {
     }
 
     private static File thumbFile(Context context, String id) {
-        File dir = new File(context.getCacheDir(), "remote_thumbs");
+        File dir = new File(context.getCacheDir(), "remote_thumbs_v15");
         if (!dir.exists()) dir.mkdirs();
         return new File(dir, safe(id) + ".img");
     }
@@ -63,18 +71,34 @@ final class RemoteAssetStore {
         return value == null ? "item" : value.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
+    private static String normalizeAddress(String address) {
+        if (address == null) return "";
+        String out = address.trim();
+        out = out.replace("/dropzone//", "/dropzone/");
+        // Evita HTTP 400 em nomes de arquivo com espaços sem depender do servidor.
+        out = out.replace(" ", "%20");
+        return out;
+    }
+
     private static void download(String address, File target) throws Exception {
-        if (address == null || address.trim().isEmpty()) throw new IllegalArgumentException("URL vazia");
+        address = normalizeAddress(address);
+        if (address.isEmpty()) throw new IllegalArgumentException("URL vazia");
         if (target.exists() && target.length() > 1024) return;
+
         File tmp = new File(target.getAbsolutePath() + ".tmp");
+        if (tmp.exists()) tmp.delete();
+
         HttpURLConnection conn = (HttpURLConnection) new URL(address).openConnection();
+        conn.setUseCaches(false);
         conn.setConnectTimeout(10000);
-        conn.setReadTimeout(20000);
-        conn.setRequestProperty("User-Agent", "iDepth26/1.4");
+        conn.setReadTimeout(22000);
+        conn.setRequestProperty("User-Agent", "iDepth26/1.5");
+        conn.setRequestProperty("Cache-Control", "no-cache");
         int code = conn.getResponseCode();
         if (code < 200 || code >= 300) {
+            String finalAddress = address;
             conn.disconnect();
-            throw new IllegalStateException("Falha no download: HTTP " + code);
+            throw new IllegalStateException("Falha no download: HTTP " + code + " • " + shortUrl(finalAddress));
         }
         try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(tmp)) {
             byte[] buffer = new byte[32 * 1024];
@@ -83,8 +107,18 @@ final class RemoteAssetStore {
         } finally {
             conn.disconnect();
         }
+
+        if (tmp.length() < 256) {
+            tmp.delete();
+            throw new IllegalStateException("Arquivo remoto vazio ou inválido.");
+        }
         if (target.exists()) target.delete();
         if (!tmp.renameTo(target)) throw new IllegalStateException("Falha ao salvar arquivo.");
+    }
+
+    private static String shortUrl(String value) {
+        if (value == null) return "";
+        return value.length() <= 60 ? value : value.substring(value.length() - 60);
     }
 
     private RemoteAssetStore() {}

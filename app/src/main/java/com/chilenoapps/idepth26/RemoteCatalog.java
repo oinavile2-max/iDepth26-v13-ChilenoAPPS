@@ -18,8 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class RemoteCatalog {
-    // A função é a fonte principal. Enquanto ela não for criada, o app cai automaticamente
-    // para o catalog.json público já hospedado no Storage.
     static final String FUNCTION_URL =
             "https://eyxwgmcxullybhsqboqh.supabase.co/functions/v1/wallpaper-catalog";
     static final String STORAGE_FALLBACK_URL =
@@ -38,7 +36,8 @@ final class RemoteCatalog {
 
     static List<RemoteWallpaper> fetchOnline(Context context) throws Exception {
         Exception firstError = null;
-        for (String url : new String[]{FUNCTION_URL, STORAGE_FALLBACK_URL}) {
+        String functionUrl = FUNCTION_URL + "?t=" + System.currentTimeMillis();
+        for (String url : new String[]{functionUrl, STORAGE_FALLBACK_URL}) {
             try {
                 String json = fetch(url);
                 List<RemoteWallpaper> list = parse(json);
@@ -58,10 +57,14 @@ final class RemoteCatalog {
 
     private static String fetch(String address) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(address).openConnection();
+        conn.setUseCaches(false);
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(12000);
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Accept", "application/json");
+        conn.setRequestProperty("Cache-Control", "no-cache, no-store");
+        conn.setRequestProperty("Pragma", "no-cache");
+        conn.setRequestProperty("User-Agent", "iDepth26/1.5");
         int code = conn.getResponseCode();
         InputStream in = code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream();
         String body = in == null ? "" : readAll(in);
@@ -90,6 +93,7 @@ final class RemoteCatalog {
             if (array == null) array = root.optJSONArray("data");
             if (array == null) array = new JSONArray();
         }
+
         List<RemoteWallpaper> result = new ArrayList<>();
         for (int i = 0; i < array.length(); i++) {
             JSONObject obj = array.optJSONObject(i);

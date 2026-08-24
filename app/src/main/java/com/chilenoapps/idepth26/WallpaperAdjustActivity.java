@@ -9,7 +9,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.GestureDetector;
@@ -36,14 +35,21 @@ import java.util.Set;
 public class WallpaperAdjustActivity extends Activity {
     private SharedPreferences prefs;
     private AdjustView preview;
+    private int accent;
+    private int surface;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = Prefs.get(this);
+        accent = ThemePalette.accent(prefs);
+        surface = ThemePalette.surface(prefs);
+        getWindow().setStatusBarColor(Color.BLACK);
+        getWindow().setNavigationBarColor(Color.BLACK);
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
+
         preview = new AdjustView();
         root.addView(preview, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -51,25 +57,21 @@ public class WallpaperAdjustActivity extends Activity {
 
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.VERTICAL);
-        top.setPadding(dp(18), dp(20), dp(18), dp(12));
-        top.setBackgroundColor(0x66000000);
+        top.setPadding(dp(18), dp(18), dp(18), dp(14));
+        top.setBackgroundColor(0x72000000);
 
         TextView title = new TextView(this);
         title.setText("Ajustar wallpaper");
         title.setTextColor(Color.WHITE);
-        title.setTextSize(22);
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setTextSize(23);
+        title.setTypeface(ClockStyles.dateTypeface("regular"));
         top.addView(title);
 
         TextView hint = new TextView(this);
-        hint.setText("Arraste para mover • belisque com dois dedos para ampliar/reduzir • toque duas vezes para redefinir");
-        hint.setTextColor(0xFFE0E0E0);
+        hint.setText("Arraste para mover • pinça com 2 dedos para zoom • toque 2x para redefinir");
+        hint.setTextColor(0xFFD6DAE2);
         hint.setTextSize(13);
-        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        hp.topMargin = dp(5);
-        top.addView(hint, hp);
+        top.addView(hint, marginTop(5));
 
         FrameLayout.LayoutParams topLp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -80,18 +82,18 @@ public class WallpaperAdjustActivity extends Activity {
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER);
-        actions.setPadding(dp(12), dp(10), dp(12), dp(18));
-        actions.setBackgroundColor(0x88000000);
+        actions.setPadding(dp(10), dp(10), dp(10), dp(18));
+        actions.setBackgroundColor(0xCC05070C);
 
-        Button cancel = button("Cancelar");
+        Button cancel = button("Cancelar", false);
         cancel.setOnClickListener(v -> finish());
         actions.addView(cancel, weight());
 
-        Button reset = button("Redefinir");
+        Button reset = button("Redefinir", false);
         reset.setOnClickListener(v -> preview.resetTransform());
         actions.addView(reset, weight());
 
-        Button save = button("Salvar ajuste");
+        Button save = button("Salvar", true);
         save.setOnClickListener(v -> {
             preview.saveTransform();
             sendBroadcast(new Intent(DepthWallpaperService.ACTION_REFRESH).setPackage(getPackageName()));
@@ -109,11 +111,17 @@ public class WallpaperAdjustActivity extends Activity {
         setContentView(root);
     }
 
-    private Button button(String label) {
+    private Button button(String label, boolean primary) {
         Button b = new Button(this);
         b.setText(label);
         b.setAllCaps(false);
         b.setTextColor(Color.WHITE);
+        b.setTextSize(13);
+        android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable();
+        d.setColor(primary ? accent : ThemePalette.mix(surface, accent, 0.12f));
+        d.setCornerRadius(dp(16));
+        if (!primary) d.setStroke(dp(1), ThemePalette.withAlpha(accent, 80));
+        b.setBackground(d);
         return b;
     }
 
@@ -121,6 +129,12 @@ public class WallpaperAdjustActivity extends Activity {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         p.leftMargin = dp(3);
         p.rightMargin = dp(3);
+        return p;
+    }
+
+    private LinearLayout.LayoutParams marginTop(int top) {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        p.topMargin = dp(top);
         return p;
     }
 
@@ -152,20 +166,11 @@ public class WallpaperAdjustActivity extends Activity {
             userScale = clamp(prefs.getFloat(Prefs.WALLPAPER_SCALE, 1f), 1f, 2.2f);
             loadLayers();
 
-            timePaint.setColor(Color.WHITE);
-            timePaint.setTextAlign(Paint.Align.CENTER);
-            timePaint.setTypeface(Typeface.create("sans-serif-thin", Typeface.NORMAL));
-            datePaint.setColor(0xEFFFFFFF);
-            datePaint.setTextAlign(Paint.Align.CENTER);
-            datePaint.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-
             scaleDetector = new ScaleGestureDetector(WallpaperAdjustActivity.this,
                     new ScaleGestureDetector.SimpleOnScaleGestureListener() {
                         @Override
                         public boolean onScale(ScaleGestureDetector detector) {
                             userScale = clamp(userScale * detector.getScaleFactor(), 1f, 2.2f);
-                            posX = clamp(posX, -1f, 1f);
-                            posY = clamp(posY, -1f, 1f);
                             invalidate();
                             return true;
                         }
@@ -173,13 +178,8 @@ public class WallpaperAdjustActivity extends Activity {
 
             gestureDetector = new GestureDetector(WallpaperAdjustActivity.this,
                     new GestureDetector.SimpleOnGestureListener() {
-                        @Override
-                        public boolean onDown(MotionEvent e) {
-                            return true;
-                        }
-
-                        @Override
-                        public boolean onDoubleTap(MotionEvent e) {
+                        @Override public boolean onDown(MotionEvent e) { return true; }
+                        @Override public boolean onDoubleTap(MotionEvent e) {
                             resetTransform();
                             return true;
                         }
@@ -216,15 +216,10 @@ public class WallpaperAdjustActivity extends Activity {
             super.onDraw(canvas);
             canvas.drawColor(Color.BLACK);
             if (background == null) return;
-
             drawLayer(canvas, background, 0f);
-            if (prefs.getBoolean(Prefs.CLOCK, true) && prefs.getBoolean(Prefs.CLOCK_BEHIND, true)) {
-                drawClock(canvas);
-            }
-            if (foreground != null) drawLayer(canvas, foreground, 0.018f);
-            if (prefs.getBoolean(Prefs.CLOCK, true) && !prefs.getBoolean(Prefs.CLOCK_BEHIND, true)) {
-                drawClock(canvas);
-            }
+            if (prefs.getBoolean(Prefs.CLOCK, true) && prefs.getBoolean(Prefs.CLOCK_BEHIND, true)) drawClock(canvas);
+            if (foreground != null) drawLayer(canvas, foreground, 0.032f);
+            if (prefs.getBoolean(Prefs.CLOCK, true) && !prefs.getBoolean(Prefs.CLOCK_BEHIND, true)) drawClock(canvas);
         }
 
         private void drawLayer(Canvas canvas, Bitmap bitmap, float extraScale) {
@@ -233,7 +228,7 @@ public class WallpaperAdjustActivity extends Activity {
             float bw = bitmap.getWidth();
             float bh = bitmap.getHeight();
             float base = Math.max(cw / bw, ch / bh);
-            float safety = 1f + (prefs.getInt(Prefs.ZOOM, 38) / 100f) * 0.24f + extraScale;
+            float safety = 1f + (prefs.getInt(Prefs.ZOOM, 40) / 100f) * 0.25f + extraScale;
             float scale = base * safety * userScale;
             float dw = bw * scale;
             float dh = bh * scale;
@@ -247,18 +242,33 @@ public class WallpaperAdjustActivity extends Activity {
         private void drawClock(Canvas canvas) {
             float width = canvas.getWidth();
             float height = canvas.getHeight();
-            float timeSize = Math.max(60f, width * 0.19f);
-            float dateSize = Math.max(18f, width * 0.043f);
+            int size = prefs.getInt(Prefs.CLOCK_SIZE, 100);
+            float timeSize = Math.max(62f, width * 0.205f * (size / 100f));
+            float dateSize = Math.max(16f, timeSize * 0.165f);
+            int color = ThemePalette.autoClockColor(prefs);
+            String font = prefs.getString(Prefs.CLOCK_FONT, "condensed");
+
+            timePaint.setTextAlign(Paint.Align.CENTER);
+            timePaint.setTypeface(ClockStyles.typeface(font));
+            timePaint.setColor(color);
             timePaint.setTextSize(timeSize);
-            timePaint.setShadowLayer(12f, 0f, 3f, 0x65000000);
+            timePaint.setShadowLayer(12f, 0f, 3f, 0x85000000);
+
+            datePaint.setTextAlign(Paint.Align.CENTER);
+            datePaint.setTypeface(ClockStyles.dateTypeface(font));
+            datePaint.setColor(color);
             datePaint.setTextSize(dateSize);
-            datePaint.setShadowLayer(8f, 0f, 2f, 0x55000000);
+            datePaint.setShadowLayer(7f, 0f, 2f, 0x72000000);
+
             Date now = new Date();
             String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
-            String date = new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(now);
-            float baseline = height * 0.235f;
+            String date = new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault())
+                    .format(now).toUpperCase(Locale.getDefault());
+            float baseline = height * (prefs.getInt(Prefs.CLOCK_Y, 24) / 100f) + timeSize * 0.82f;
             canvas.drawText(time, width / 2f, baseline, timePaint);
-            canvas.drawText(date, width / 2f, baseline + dateSize * 1.7f, datePaint);
+            if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
+                canvas.drawText(date, width / 2f, baseline - timeSize * 1.06f, datePaint);
+            }
         }
 
         @Override
@@ -299,7 +309,7 @@ public class WallpaperAdjustActivity extends Activity {
             float bw = background.getWidth();
             float bh = background.getHeight();
             float base = Math.max(getWidth() / bw, getHeight() / bh);
-            float safety = 1f + (prefs.getInt(Prefs.ZOOM, 38) / 100f) * 0.24f;
+            float safety = 1f + (prefs.getInt(Prefs.ZOOM, 40) / 100f) * 0.25f;
             float dw = bw * base * safety * userScale;
             float dh = bh * base * safety * userScale;
             return new float[]{Math.max(1f, (dw - getWidth()) / 2f), Math.max(1f, (dh - getHeight()) / 2f)};

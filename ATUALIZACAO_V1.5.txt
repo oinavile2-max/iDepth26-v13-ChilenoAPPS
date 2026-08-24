@@ -1,0 +1,21 @@
+iDepth 26 Wallpapers v1.5 — ChilenoAPPS
+
+REFATORAÇÃO COMPLETA DE INTERFACE E PERSONALIZAÇÃO
+
+- Nova interface premium dark com cards arredondados e navegação em 5 abas.
+- Paleta dinâmica extraída automaticamente do wallpaper atual.
+- Home com preview real do tema, relógio e camadas.
+- Aba Minhas Fotos separada dos wallpapers online.
+- Importação de várias fotos e seleção individual.
+- 8 estilos de fonte do relógio usando fontes do sistema Android.
+- Controle de cor, tamanho, posição e data do relógio.
+- Profundidade mais robusta com spring smoothing, parallax, rotação e planos independentes.
+- Relógio em plano intermediário entre fundo e primeiro plano quando houver foreground.
+- Ajuste por arrastar, pinça e toque duplo.
+- Cache de miniaturas renovado para a v1.5.
+- URLs remotas normalizadas para reduzir erro HTTP 400.
+- Catálogo remoto com no-cache para atualizações imediatas.
+- Mantidos os 20 wallpapers offline e o catálogo Supabase.
+
+OBSERVAÇÃO
+Wallpapers de uma única imagem têm parallax e relógio, mas a oclusão real do relógio atrás do assunto exige foreground PNG transparente. Wallpapers offline com camadas e remotos com foreground suportam esse efeito real.

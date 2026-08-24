@@ -10,8 +10,8 @@ android {
         applicationId = "com.chilenoapps.idepth26"
         minSdk = 27
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.4.0"
+        versionCode = 5
+        versionName = "1.5.0"
     }
 
     buildTypes {
