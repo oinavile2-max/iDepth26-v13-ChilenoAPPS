@@ -1,0 +1,14 @@
+iDepth 26 v1.6.1 — BUILD AUDIT
+
+- applicationId: com.chilenoapps.idepth26
+- versionCode: 7
+- versionName: 1.6.1
+- compileSdk/targetSdk: 36
+- Java: 17
+- AGP: 8.10.0
+- Gradle: 8.11.1
+- AndroidX: true
+- Kotlin stdlib forced: 1.8.22 (evita Duplicate class)
+- Artifact: iDepth26-v1.6.1-ChilenoAPPS
+- Admin VIP: backend Supabase / vip_overrides / vip-status
+- Credenciais admin: não embutidas no APK

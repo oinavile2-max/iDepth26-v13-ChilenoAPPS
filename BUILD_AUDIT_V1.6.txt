@@ -1,0 +1,18 @@
+iDepth 26 v1.6 — auditoria de empacotamento
+
+- versionCode: 6
+- versionName: 1.6.0
+- compileSdk/targetSdk: 36
+- Android Gradle Plugin: 8.10.0
+- Gradle exigido: 8.11.1
+- JDK: 17
+- Artifact: iDepth26-v1.6-ChilenoAPPS
+- Java: análise sintática sem erros estruturais detectados
+- Edge Functions: análise sintática sem erros de parse detectados
+- Credenciais administrativas reais hardcoded: NÃO
+- Secrets Telegram/Supabase hardcoded: NÃO
+- Logs anônimos protegidos por consentimento: SIM
+- Upload de foto para curadoria protegido por aviso/consentimento explícito: SIM
+- Painel admin: token temporário no backend; senha não armazenada no APK
+
+Validação final: compilar no PC com COMPILAR_V1.6.ps1 e testar em dispositivo Android real antes de publicar.

@@ -1,0 +1,9 @@
+iDepth26 - HOTFIX avisos galeria + popup VIP
+
+Este hotfix corrige o PATCH anterior que usou um MainActivity de outra revisão e gerou erros em Prefs.CLOCK_X, CLOCK_ALPHA, CLOCK_SHADOW etc.
+
+Este pacote substitui SOMENTE MainActivity.java e foi baseado na v1.6.1/FIX1.
+Nao refatora editor, Prefs, ThemePalette, Supabase, Telegram ou wallpapers offline.
+
+Aplicar na raiz do projeto e substituir o arquivo existente.
+Depois compilar normalmente.

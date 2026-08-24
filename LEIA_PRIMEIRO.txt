@@ -1,0 +1,23 @@
+iDepth 26 Wallpapers — Refactor v1.7.0 (ChilenoAPPS)
+
+FAÇA SÓ ISSO:
+1) Extraia este ZIP dentro da raiz do projeto:
+   C:\Users\Admin\StudioProjects\iDepth26-v13-ChilenoAPPS
+2) No Terminal do Android Studio execute:
+   powershell -ExecutionPolicy Bypass -File .\APLICAR_REFACTOR_V1.7.ps1
+
+O script faz backup do código atual, aplica o refactor, remove os wallpapers offline antigos,
+instala os novos catálogos OFFLINE/ONLINE, valida as quantidades, compila e copia o APK para a Área de Trabalho.
+
+Catálogo final:
+- OFFLINE: 63 wallpapers — 5 FREE + 58 VIP
+- ONLINE BASE: 84 wallpapers — 5 FREE + 79 VIP
+- Atualizações remotas via Telegram/Supabase continuam preservadas na seção Online.
+
+Editor refatorado:
+- Relógio com profundidade LIGADO por padrão.
+- Tipografia, Efeitos e Transformar conectados ao preview e ao live wallpaper.
+- X/Y do relógio, tamanho, opacidade, sombra, zoom -/+, enquadramento, brilho, contraste e parallax.
+- Paleta do relógio extraída diretamente dos pixels do wallpaper atual.
+- Foreground automático por ML Kit para os packs, quando possível.
+- VIP Admin/Supabase e Telegram preservados.

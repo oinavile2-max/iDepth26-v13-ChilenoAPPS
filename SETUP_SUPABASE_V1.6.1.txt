@@ -1,0 +1,43 @@
+PASSOS — SUPABASE v1.6.1
+=========================
+
+1) SQL EDITOR
+Se ainda não executou a base v1.6, execute primeiro:
+  supabase/migrations/20260824_v16_admin_usage.sql
+
+Depois execute:
+  supabase/migrations/20260824_v161_admin_vip.sql
+
+A migration v1.6.1 cria vip_overrides e atualiza admin_dashboard_metrics().
+
+2) EDGE FUNCTIONS
+Atualize/republique:
+  admin-dashboard   -> supabase/functions/admin-dashboard/index.ts
+
+Crie e publique:
+  vip-status        -> supabase/functions/vip-status/index.ts
+
+Verify JWT deve ficar OFF nas duas.
+O admin-dashboard usa o token administrativo próprio.
+
+3) SECRETS
+Mantenha os secrets administrativos já configurados:
+  ADMIN_LOGIN_SHA256
+  ADMIN_PASSWORD_SALT
+  ADMIN_PASSWORD_PBKDF2
+  ADMIN_SESSION_SECRET
+
+Não coloque CPF, senha ou secrets no APK/repositório.
+
+4) COMO ATIVAR SEU VIP DE TESTE
+No app: Ajustes -> toque 7x rapidamente em Ajustes -> login admin.
+No Painel Admin, seção Acesso VIP, use 'Ativar VIP' em 'VIP deste aparelho'.
+O app também consulta vip-status ao abrir/retomar.
+
+5) OUTROS USUÁRIOS
+O painel lista instalações presentes nos logs anônimos (quando houve consentimento).
+Use Ativar VIP / Desativar ao lado da instalação desejada.
+
+6) IMPORTANTE PARA AS LOJAS
+VIP administrativo é destinado a teste, suporte e promoções concedidas pelo operador.
+A venda pública de recursos digitais continua pelo sistema de cobrança da loja.

@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
   const query =
     `${supabaseUrl}/rest/v1/wallpapers?` +
-    `select=slug,name,category,thumbnail_url,background_url,homescreen_url,foreground_url,is_new,featured,depth_mode,clock_depth_ready,created_at` +
+    `select=slug,name,category,thumbnail_url,background_url,homescreen_url,foreground_url,is_new,featured,depth_mode,clock_depth_ready,vip_only,created_at` +
     `&published=eq.true&order=created_at.desc`;
 
   const response = await fetch(query, {
@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     featured: w.featured,
     depth_mode: w.depth_mode,
     clock_depth_ready: w.clock_depth_ready,
+    vip_only: w.vip_only ?? false,
     created_at: w.created_at,
   }));
 

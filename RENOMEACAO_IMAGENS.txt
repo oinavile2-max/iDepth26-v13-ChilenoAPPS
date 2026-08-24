@@ -1,0 +1,32 @@
+iDepth 26 - Troca das imagens offline
+
+Este patch altera APENAS o catálogo/imagens offline. Não refatora editor, VIP, Supabase ou Telegram.
+
+Total: 21 imagens
+
+Renomeação:
+- 150067.jpeg -> wall_01_retro_mood_cassette_bg.jpg | nome no app: Retro Mood
+- 150068.jpeg -> wall_02_noir_woman_hat_bg.jpg | nome no app: Noir Woman
+- 150069.jpeg -> wall_03_tropical_palm_sunset_bg.jpg | nome no app: Tropical Sunset
+- 4929618911389486769.jpg -> wall_04_bottle_live_preview_bg.jpg | nome no app: Bottle Live Preview
+- 4929618911389486770.jpg -> wall_05_bottle_studio_preview_bg.jpg | nome no app: Bottle Studio Preview
+- Stitch.jpg -> wall_06_stitch_night_bg.jpg | nome no app: Stitch Night
+- Xurshid.jpg -> wall_07_hooded_red_eyes_bg.jpg | nome no app: Hooded Red Eyes
+- download (1).jpg -> wall_08_spiderman_red_bg.jpg | nome no app: Spider-Man Red
+- download (2).jpg -> wall_09_lightning_mcqueen_snow_bg.jpg | nome no app: Lightning McQueen Snow
+- download (3).jpg -> wall_10_lightning_mcqueen_night_bg.jpg | nome no app: Lightning McQueen Night
+- download (4).jpg -> wall_11_spider_gwen_bg.jpg | nome no app: Spider-Gwen
+- download (5).jpg -> wall_12_black_spiderman_bg.jpg | nome no app: Black Spider-Man
+- download.jpg -> wall_13_spiderman_comic_bg.jpg | nome no app: Spider-Man Comic
+- firefly-honkai-star-1284x2778-26937.jpg -> wall_14_firefly_honkai_star_rail_bg.jpg | nome no app: Firefly Honkai Star Rail
+- grand-theft-auto-vi-1284x2778-26985.jpg -> wall_15_gta_vi_bg.jpg | nome no app: GTA VI
+- jennie-cosmopolitan-1284x2778-26910.jpg -> wall_16_jennie_cosmopolitan_bg.jpg | nome no app: Jennie Cosmopolitan
+- jennie-purple-1284x2778-26909.jpg -> wall_17_jennie_purple_bg.jpg | nome no app: Jennie Purple
+- mountain-tim-steel-1284x2778-26978.png -> wall_18_mountain_tim_jojo_bg.png | nome no app: Mountain Tim
+- preity-mukhundhan-1284x2778-26895.jpg -> wall_19_preity_mukhundhan_bg.jpg | nome no app: Preity Mukhundhan
+- spring-flowers-1284x2778-26981.jpg -> wall_20_spring_flowers_bg.jpg | nome no app: Spring Flowers
+- zenvo-aurora-tur-8k-1284x2778-26983.jpg -> wall_21_zenvo_aurora_tur_bg.jpg | nome no app: Zenvo Aurora Tur
+
+Observação:
+- Os dois arquivos 4929618911389486769.jpg e 4929618911389486770.jpg são capturas de tela do app; foram mantidos porque estavam no ZIP enviado.
+- Como o ZIP contém imagens simples e não pares background/foreground, o foreground offline deste patch é transparente. Nenhuma segmentação/refatoração foi feita.

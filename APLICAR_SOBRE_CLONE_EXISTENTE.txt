@@ -1,0 +1,25 @@
+APLICAR v1.6.1 SOBRE O CLONE ATUAL
+=================================
+
+Projeto esperado:
+C:\Users\Admin\StudioProjects\iDepth26-v13-ChilenoAPPS
+
+1. Extraia o ZIP PATCH v1.6.1 diretamente nessa pasta.
+2. Aceite SUBSTITUIR os arquivos existentes.
+3. No Terminal do Android Studio, confirme JDK 17.
+4. Compile com:
+
+powershell -ExecutionPolicy Bypass -File .\COMPILAR_V1.6.1.ps1
+
+Ou diretamente:
+C:\Gradle\gradle-8.11.1\bin\gradle.bat clean :app:assembleDebug --console=plain
+
+APK de debug:
+app\build\outputs\apk\debug\app-debug.apk
+
+Cópia renomeada pelo script:
+iDepth26-v1.6.1-ChilenoAPPS.apk
+
+BACKEND VIP ADMIN:
+Antes de testar a liberação VIP pelo painel, execute a migration v1.6.1,
+republique admin-dashboard e publique vip-status conforme SETUP_SUPABASE_V1.6.1.txt.

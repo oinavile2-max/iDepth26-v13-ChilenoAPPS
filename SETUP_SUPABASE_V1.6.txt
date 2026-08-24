@@ -1,0 +1,84 @@
+PASSOS DE ATUALIZAÇÃO — SUPABASE v1.6
+=====================================
+
+1. SQL EDITOR
+Execute:
+supabase/migrations/20260824_v16_admin_usage.sql
+
+Isso cria/atualiza:
+- vip_only em wallpapers
+- app_events
+- user_wallpaper_submissions
+- email_deliveries
+- bucket privado user-submissions
+- função admin_dashboard_metrics()
+
+2. ADMIN
+Abra LOCALMENTE:
+supabase/ADMIN_CREDENTIAL_HELPER.html
+
+Informe o CPF autorizado e a senha administrativa apenas nessa ferramenta local para gerar hashes.
+Salve no Supabase os secrets gerados:
+ADMIN_LOGIN_SHA256
+ADMIN_PASSWORD_SALT
+ADMIN_PASSWORD_PBKDF2
+ADMIN_SESSION_SECRET
+
+Não salve CPF/senha em texto puro no app ou no GitHub.
+
+3. EDGE FUNCTIONS
+Crie/atualize:
+usage-log
+admin-auth
+admin-dashboard
+user-wallpaper-submit
+telegram-wallpaper-update
+
+Cole o index.ts correspondente de:
+supabase/functions/<nome>/index.ts
+
+Verify JWT:
+- usage-log: OFF
+- admin-auth: OFF
+- admin-dashboard: OFF (usa token admin próprio)
+- user-wallpaper-submit: OFF
+- telegram-wallpaper-update: OFF
+
+4. CATÁLOGO
+Atualize wallpaper-catalog com:
+SUPABASE_WALLPAPER_CATALOG_EDGE_FUNCTION.ts
+
+5. E-MAIL DE CURADORIA
+Para enviar submissões automaticamente e permitir reenvio pelo painel admin:
+RESEND_API_KEY
+CURATION_EMAIL
+MAIL_FROM
+
+6. TELEGRAM
+Mantenha os secrets atuais:
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHANNEL
+WEBHOOK_SECRET
+TELEGRAM_WEBHOOK_SECRET
+TELEGRAM_ADMIN_USER_ID
+
+7. VIP
+Na tabela wallpapers, um wallpaper remoto premium pode ser marcado:
+vip_only = true
+
+Exemplo:
+update public.wallpapers
+set vip_only = true
+where slug = 'meu-wallpaper-premium';
+
+8. PLAY CONSOLE
+Produtos esperados pelo app:
+idepth_vip_monthly
+idepth_vip_annual
+
+O teste de 7 dias deve ser configurado como oferta elegível do produto anual na Play Console.
+
+9. PRIVACIDADE / LOJAS
+O app pergunta antes de ativar logs anônimos.
+O envio de foto para curadoria exige confirmação separada.
+Revise e publique o arquivo PRIVACY_POLICY_TEMPLATE.md em uma URL pública antes do lançamento.
