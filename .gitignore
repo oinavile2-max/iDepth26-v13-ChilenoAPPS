@@ -1,0 +1,10 @@
+﻿.gradle/
+.idea/
+build/
+app/build/
+local.properties
+*.apk
+*.aab
+supabase/ADMIN_CREDENTIAL_HELPER.html
+erro-v16.txt
+*.log
