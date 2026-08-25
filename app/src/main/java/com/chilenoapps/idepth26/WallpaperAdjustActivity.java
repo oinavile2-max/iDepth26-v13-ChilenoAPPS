@@ -248,6 +248,28 @@ public class WallpaperAdjustActivity extends Activity {
     }
 
     private void buildTypography() {
+        String currentStyle = prefs.getString(Prefs.CLOCK_STYLE, "depth_outline");
+        Button style = button("Estilo: " + ("depth_outline".equals(currentStyle) ? "Neon Depth" : "Solido"), false);
+        style.setOnClickListener(v -> {
+            String next = "depth_outline".equals(prefs.getString(Prefs.CLOCK_STYLE, "depth_outline"))
+                    ? "solid" : "depth_outline";
+            prefs.edit().putString(Prefs.CLOCK_STYLE, next).apply();
+            style.setText("Estilo: " + ("depth_outline".equals(next) ? "Neon Depth" : "Solido"));
+            preview.invalidate();
+        });
+        editor.addView(style);
+
+        String currentFormat = prefs.getString(Prefs.CLOCK_FORMAT, "hours");
+        Button format = button("Formato: " + ("hours".equals(currentFormat) ? "06h" : "06:45"), false);
+        format.setOnClickListener(v -> {
+            String next = "hours".equals(prefs.getString(Prefs.CLOCK_FORMAT, "hours"))
+                    ? "full" : "hours";
+            prefs.edit().putString(Prefs.CLOCK_FORMAT, next).apply();
+            format.setText("Formato: " + ("hours".equals(next) ? "06h" : "06:45"));
+            preview.invalidate();
+        });
+        editor.addView(format, marginTop(4));
+
         Button font = button("Fonte: " + prefs.getString(Prefs.CLOCK_FONT, "condensed"), false);
         font.setOnClickListener(v -> {
             String current = prefs.getString(Prefs.CLOCK_FONT, "condensed");
@@ -265,7 +287,7 @@ public class WallpaperAdjustActivity extends Activity {
             font.setText("Fonte: " + next);
             preview.invalidate();
         });
-        editor.addView(font);
+        editor.addView(font, marginTop(4));
 
         CheckBox showDate = checkbox("Mostrar data", prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true));
         showDate.setOnCheckedChangeListener((buttonView, checked) -> {
@@ -276,18 +298,36 @@ public class WallpaperAdjustActivity extends Activity {
 
         addClockSizeStepper();
 
-        TextView paletteLabel = label("Paleta extraída do wallpaper");
+        TextView paletteLabel = label("Paleta extraida do wallpaper atual");
         editor.addView(paletteLabel, marginTop(8));
         editor.addView(buildPalettePicker(), marginTop(5));
 
-        addIntSlider("Opacidade do relógio", 25, 100,
+        addIntSlider("Espessura do contorno", 1, 12,
+                prefs.getInt(Prefs.CLOCK_STROKE, 5), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_STROKE, value).apply();
+                    preview.invalidate();
+                });
+
+        addIntSlider("Preenchimento do relogio", 0, 100,
+                prefs.getInt(Prefs.CLOCK_FILL, 8), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_FILL, value).apply();
+                    preview.invalidate();
+                });
+
+        addIntSlider("Brilho Neon", 0, 100,
+                prefs.getInt(Prefs.CLOCK_GLOW, 62), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_GLOW, value).apply();
+                    preview.invalidate();
+                });
+
+        addIntSlider("Opacidade do relogio", 25, 100,
                 prefs.getInt(Prefs.CLOCK_ALPHA, 100), value -> {
                     prefs.edit().putInt(Prefs.CLOCK_ALPHA, value).apply();
                     preview.invalidate();
                 });
 
         addIntSlider("Sombra", 0, 100,
-                prefs.getInt(Prefs.CLOCK_SHADOW, 70), value -> {
+                prefs.getInt(Prefs.CLOCK_SHADOW, 55), value -> {
                     prefs.edit().putInt(Prefs.CLOCK_SHADOW, value).apply();
                     preview.invalidate();
                 });
@@ -359,7 +399,7 @@ public class WallpaperAdjustActivity extends Activity {
             preview.invalidate();
         });
         plus.setOnClickListener(v -> {
-            int next = Math.min(160, prefs.getInt(Prefs.CLOCK_SIZE, 100) + 5);
+            int next = Math.min(220, prefs.getInt(Prefs.CLOCK_SIZE, 100) + 5);
             prefs.edit().putInt(Prefs.CLOCK_SIZE, next).apply();
             value.setText(next + "%");
             preview.invalidate();
@@ -431,7 +471,12 @@ public class WallpaperAdjustActivity extends Activity {
         auto.setGravity(Gravity.CENTER);
         auto.setBackground(rounded(0xFF242424, dp(13), 0xFF4A4A4A));
         auto.setOnClickListener(v -> {
-            prefs.edit().putString(Prefs.CLOCK_COLOR_MODE, "auto").apply();
+            prefs.edit().putString(Prefs.CLOCK_COLOR_MODE, "auto")
+                    .putString(Prefs.CLOCK_STYLE, "depth_outline")
+                    .putString(Prefs.CLOCK_FORMAT, "hours")
+                    .putInt(Prefs.CLOCK_STROKE, 5)
+                    .putInt(Prefs.CLOCK_FILL, 8)
+                    .putInt(Prefs.CLOCK_GLOW, 62).apply();
             preview.invalidate();
         });
         row.addView(auto, new LinearLayout.LayoutParams(dp(52), dp(42)));
@@ -740,48 +785,96 @@ public class WallpaperAdjustActivity extends Activity {
             float clockDepth = prefs.getInt(Prefs.CLOCK_DEPTH, 78) / 100f;
             float effectiveDepth = overallDepth * clockDepth;
 
-            float timeSize = Math.max(48f, width * 0.205f * (size / 100f));
-            // Mudança visível de profundidade mesmo no preview estático.
-            float depthScale = 1f + effectiveDepth * 0.035f;
-            timeSize *= depthScale;
-            float dateSize = Math.max(14f, timeSize * 0.165f);
+            String style = prefs.getString(Prefs.CLOCK_STYLE, "depth_outline");
+            String format = prefs.getString(Prefs.CLOCK_FORMAT, "hours");
+            boolean outline = "depth_outline".equals(style);
+            boolean hoursOnly = "hours".equals(format);
 
-            int color = ThemePalette.clockColor(prefs, background, xPercent, yPercent, size);
+            float baseFactor = outline ? (hoursOnly ? 0.43f : 0.285f) : 0.205f;
+            float timeSize = Math.max(48f, width * baseFactor * (size / 100f));
+            timeSize *= 1f + effectiveDepth * 0.025f;
+            float dateSize = Math.max(14f, timeSize * (outline ? 0.115f : 0.165f));
+
+            int color = outline
+                    ? ThemePalette.neonClockColor(prefs, background, xPercent, yPercent, size)
+                    : ThemePalette.clockColor(prefs, background, xPercent, yPercent, size);
             String font = prefs.getString(Prefs.CLOCK_FONT, "condensed");
             int alpha = Math.round(255f * prefs.getInt(Prefs.CLOCK_ALPHA, 100) / 100f);
-            float shadow = prefs.getInt(Prefs.CLOCK_SHADOW, 70) / 100f;
+            float shadow = prefs.getInt(Prefs.CLOCK_SHADOW, 55) / 100f;
 
             timePaint.setTextAlign(Paint.Align.CENTER);
             timePaint.setTypeface(ClockStyles.typeface(font));
             timePaint.setColor(color);
-            timePaint.setAlpha(alpha);
             timePaint.setTextSize(timeSize);
-            timePaint.setShadowLayer(3f + 17f * shadow + 8f * effectiveDepth, 0f, 2f + 3f * shadow, 0xA0000000);
 
-            datePaint.setTextAlign(Paint.Align.CENTER);
             datePaint.setTypeface(ClockStyles.dateTypeface(font));
             datePaint.setColor(color);
             datePaint.setAlpha(alpha);
             datePaint.setTextSize(dateSize);
-            datePaint.setShadowLayer(2f + 9f * shadow, 0f, 1f + 2f * shadow, 0x85000000);
 
             Date now = new Date();
-            String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
-            String date = new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault())
+            String time = hoursOnly
+                    ? new SimpleDateFormat("HH'h'", Locale.getDefault()).format(now)
+                    : new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
+            String date = new SimpleDateFormat("EEE, d MMM", Locale.getDefault())
                     .format(now).toUpperCase(Locale.getDefault());
 
             float centerX = width * (xPercent / 100f);
             float baseline = height * (yPercent / 100f) + timeSize * 0.82f;
-            canvas.drawText(time, centerX, baseline, timePaint);
-            if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
-                canvas.drawText(date, centerX, baseline - timeSize * 1.06f, datePaint);
+
+            if (outline) {
+                int stroke = prefs.getInt(Prefs.CLOCK_STROKE, 5);
+                int fill = prefs.getInt(Prefs.CLOCK_FILL, 8);
+                float glow = prefs.getInt(Prefs.CLOCK_GLOW, 62) / 100f;
+                float strokePx = Math.max(2f, timeSize * (0.0065f + stroke * 0.0017f));
+
+                timePaint.setStyle(Paint.Style.STROKE);
+                timePaint.setStrokeWidth(strokePx);
+                timePaint.setAlpha(alpha);
+                timePaint.setShadowLayer(
+                        2f + timeSize * 0.065f * glow,
+                        0f, 0f,
+                        ThemePalette.withAlpha(color, Math.min(220, 80 + Math.round(135f * glow))));
+                canvas.drawText(time, centerX, baseline, timePaint);
+
+                if (fill > 0) {
+                    timePaint.clearShadowLayer();
+                    timePaint.setStyle(Paint.Style.FILL);
+                    timePaint.setAlpha(Math.round(alpha * (fill / 100f)));
+                    canvas.drawText(time, centerX, baseline, timePaint);
+                }
+
+                timePaint.setStyle(Paint.Style.FILL);
+                timePaint.setAlpha(alpha);
+                timePaint.setStrokeWidth(0f);
+
+                if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
+                    float measured = timePaint.measureText(time);
+                    datePaint.setTextAlign(Paint.Align.LEFT);
+                    datePaint.setShadowLayer(2f + 7f * shadow, 0f, 2f, 0x88000000);
+                    canvas.drawText(date,
+                            centerX - measured * 0.43f,
+                            baseline - timeSize * 0.54f,
+                            datePaint);
+                }
+            } else {
+                timePaint.setStyle(Paint.Style.FILL);
+                timePaint.setAlpha(alpha);
+                timePaint.setShadowLayer(3f + 17f * shadow + 8f * effectiveDepth,
+                        0f, 2f + 3f * shadow, 0xA0000000);
+                canvas.drawText(time, centerX, baseline, timePaint);
+                if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
+                    datePaint.setTextAlign(Paint.Align.CENTER);
+                    datePaint.setShadowLayer(2f + 9f * shadow, 0f, 1f + 2f * shadow, 0x85000000);
+                    canvas.drawText(date, centerX, baseline - timeSize * 1.06f, datePaint);
+                }
             }
 
             float textWidth = Math.max(timePaint.measureText(time), datePaint.measureText(date));
             clockBounds.set(centerX - textWidth * 0.62f,
-                    baseline - timeSize * 1.32f,
+                    baseline - timeSize * 1.10f,
                     centerX + textWidth * 0.62f,
-                    baseline + timeSize * 0.20f);
+                    baseline + timeSize * 0.22f);
         }
 
         @Override
@@ -856,6 +949,11 @@ public class WallpaperAdjustActivity extends Activity {
                     .putInt(Prefs.WALLPAPER_DIM, 0)
                     .putInt(Prefs.FOREGROUND_MOTION, 0)
                     .putString(Prefs.CLOCK_COLOR_MODE, "auto")
+                    .putString(Prefs.CLOCK_STYLE, "depth_outline")
+                    .putString(Prefs.CLOCK_FORMAT, "hours")
+                    .putInt(Prefs.CLOCK_STROKE, 5)
+                    .putInt(Prefs.CLOCK_FILL, 8)
+                    .putInt(Prefs.CLOCK_GLOW, 62)
                     .apply();
             saveTransform();
             invalidate();

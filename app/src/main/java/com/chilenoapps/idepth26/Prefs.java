@@ -54,6 +54,12 @@ final class Prefs {
     static final String CLOCK_COLOR_MODE = "clock_color_mode";
     static final String CLOCK_COLOR = "clock_color";
     static final String CLOCK_SHOW_DATE = "clock_show_date";
+    // Experiencia Neon Depth: relogio grande contornado, integrado ao assunto.
+    static final String CLOCK_STYLE = "clock_style"; // depth_outline | solid
+    static final String CLOCK_FORMAT = "clock_format"; // hours | full
+    static final String CLOCK_STROKE = "clock_stroke"; // 1..12
+    static final String CLOCK_FILL = "clock_fill"; // 0..100
+    static final String CLOCK_GLOW = "clock_glow"; // 0..100
 
     static final String THEME_AUTO = "theme_auto";
     static final String THEME_ACCENT = "theme_accent";

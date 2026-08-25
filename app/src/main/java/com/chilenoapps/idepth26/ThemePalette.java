@@ -213,6 +213,34 @@ final class ThemePalette {
         return best;
     }
 
+    /**
+     * Cor Neon Depth: escolhe a cor mais viva ENTRE as cinco cores realmente
+     * extraidas do wallpaper. Nao cria matiz artificial.
+     */
+    static int neonClockColor(SharedPreferences p, Bitmap bitmap, int xPercent, int yPercent, int sizePercent) {
+        if ("custom".equals(p.getString(Prefs.CLOCK_COLOR_MODE, "auto"))) {
+            return p.getInt(Prefs.CLOCK_COLOR, Color.WHITE);
+        }
+        int[] colors = palette(p);
+        int best = colors[0];
+        float bestScore = -1000f;
+        float[] hsv = new float[3];
+        for (int c : colors) {
+            Color.colorToHSV(c, hsv);
+            float luma = relativeLuminance(c);
+            float score = hsv[1] * 1.70f + hsv[2] * 0.55f;
+            if (luma < 0.055f) score -= 0.90f;
+            if (luma > 0.94f) score -= 0.20f;
+            if (score > bestScore) {
+                bestScore = score;
+                best = c;
+            }
+        }
+        if (bestScore < 0.18f) {
+            return clockColor(p, bitmap, xPercent, yPercent, sizePercent);
+        }
+        return best;
+    }
     static int clockColor(SharedPreferences p, Bitmap bitmap, int xPercent, int yPercent, int sizePercent) {
         String mode = p.getString(Prefs.CLOCK_COLOR_MODE, "auto");
         if ("custom".equals(mode)) return p.getInt(Prefs.CLOCK_COLOR, Color.WHITE);

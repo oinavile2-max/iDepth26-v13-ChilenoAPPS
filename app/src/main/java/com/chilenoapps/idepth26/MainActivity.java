@@ -576,7 +576,7 @@ public class MainActivity extends Activity {
         clockControls.addView(text("Cor", 13, true), marginTop(10));
         clockControls.addView(buildClockColorPicker(), marginTop(7));
         clockControls.addView(text("Tamanho", 13, true), marginTop(10));
-        clockControls.addView(seek(prefs.getInt(Prefs.CLOCK_SIZE, 100), 60, 150,
+        clockControls.addView(seek(prefs.getInt(Prefs.CLOCK_SIZE, 100), 60, 220,
                 value -> { prefs.edit().putInt(Prefs.CLOCK_SIZE, value).apply(); notifyWallpaperRefresh(); }));
         clockControls.addView(text("Posição horizontal", 13, true), marginTop(7));
         clockControls.addView(seek(prefs.getInt(Prefs.CLOCK_X, 50), 8, 92,
@@ -1674,30 +1674,81 @@ public class MainActivity extends Activity {
 
         private void drawClock(Canvas canvas) {
             int size = prefs.getInt(Prefs.CLOCK_SIZE, 100);
-            float timeSize = getWidth() * 0.22f * (size / 100f);
-            float dateSize = Math.max(15f, timeSize * 0.17f);
-            float x = getWidth() * (prefs.getInt(Prefs.CLOCK_X, 50) / 100f);
-            float y = getHeight() * (prefs.getInt(Prefs.CLOCK_Y, 24) / 100f);
+            int xPercent = prefs.getInt(Prefs.CLOCK_X, 50);
+            int yPercent = prefs.getInt(Prefs.CLOCK_Y, 24);
+            String style = prefs.getString(Prefs.CLOCK_STYLE, "depth_outline");
+            String format = prefs.getString(Prefs.CLOCK_FORMAT, "hours");
+            boolean outline = "depth_outline".equals(style);
+            boolean hoursOnly = "hours".equals(format);
+
+            float timeSize = getWidth() * (outline ? (hoursOnly ? 0.43f : 0.285f) : 0.22f) * (size / 100f);
+            float dateSize = Math.max(14f, timeSize * (outline ? 0.115f : 0.17f));
+            float x = getWidth() * (xPercent / 100f);
+            float y = getHeight() * (yPercent / 100f);
+            int color = outline
+                    ? ThemePalette.neonClockColor(prefs, background, xPercent, yPercent, size)
+                    : ThemePalette.clockColor(prefs, background, xPercent, yPercent, size);
+            int alpha = Math.round(255f * prefs.getInt(Prefs.CLOCK_ALPHA, 100) / 100f);
+            float shadow = prefs.getInt(Prefs.CLOCK_SHADOW, 55) / 100f;
             String font = prefs.getString(Prefs.CLOCK_FONT, "condensed");
-            int color = ThemePalette.clockColor(prefs, background, prefs.getInt(Prefs.CLOCK_X, 50), prefs.getInt(Prefs.CLOCK_Y, 24), size);
+
             clockPaint.setTextAlign(Paint.Align.CENTER);
             clockPaint.setTypeface(ClockStyles.typeface(font));
             clockPaint.setTextSize(timeSize);
             clockPaint.setColor(color);
-            clockPaint.setAlpha(Math.round(255f * prefs.getInt(Prefs.CLOCK_ALPHA, 100) / 100f));
-            float shadow = prefs.getInt(Prefs.CLOCK_SHADOW, 70) / 100f;
-            clockPaint.setShadowLayer(3f + 17f * shadow, 0, 2f + 3f * shadow, 0x99000000);
-            datePaint.setTextAlign(Paint.Align.CENTER);
+
             datePaint.setTypeface(ClockStyles.dateTypeface(font));
             datePaint.setTextSize(dateSize);
             datePaint.setColor(color);
-            datePaint.setAlpha(Math.round(255f * prefs.getInt(Prefs.CLOCK_ALPHA, 100) / 100f));
-            datePaint.setShadowLayer(2f + 9f * shadow, 0, 1f + 2f * shadow, 0x77000000);
+            datePaint.setAlpha(alpha);
+
             Date now = new Date();
-            String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
-            String date = new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).format(now).toUpperCase(Locale.getDefault());
-            canvas.drawText(time, x, y + timeSize * 0.78f, clockPaint);
-            if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) canvas.drawText(date, x, y - dateSize * 0.20f, datePaint);
+            String time = hoursOnly
+                    ? new SimpleDateFormat("HH'h'", Locale.getDefault()).format(now)
+                    : new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
+            String date = new SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+                    .format(now).toUpperCase(Locale.getDefault());
+            float baseline = y + timeSize * 0.82f;
+
+            if (outline) {
+                int stroke = prefs.getInt(Prefs.CLOCK_STROKE, 5);
+                int fill = prefs.getInt(Prefs.CLOCK_FILL, 8);
+                float glow = prefs.getInt(Prefs.CLOCK_GLOW, 62) / 100f;
+                float strokePx = Math.max(2f, timeSize * (0.0065f + stroke * 0.0017f));
+
+                clockPaint.setStyle(Paint.Style.STROKE);
+                clockPaint.setStrokeWidth(strokePx);
+                clockPaint.setAlpha(alpha);
+                clockPaint.setShadowLayer(2f + timeSize * 0.065f * glow, 0f, 0f,
+                        ThemePalette.withAlpha(color, Math.min(220, 80 + Math.round(135f * glow))));
+                canvas.drawText(time, x, baseline, clockPaint);
+
+                if (fill > 0) {
+                    clockPaint.clearShadowLayer();
+                    clockPaint.setStyle(Paint.Style.FILL);
+                    clockPaint.setAlpha(Math.round(alpha * (fill / 100f)));
+                    canvas.drawText(time, x, baseline, clockPaint);
+                }
+                clockPaint.setStyle(Paint.Style.FILL);
+                clockPaint.setStrokeWidth(0f);
+                clockPaint.setAlpha(alpha);
+
+                if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
+                    float measured = clockPaint.measureText(time);
+                    datePaint.setTextAlign(Paint.Align.LEFT);
+                    datePaint.setShadowLayer(2f + 7f * shadow, 0f, 2f, 0x88000000);
+                    canvas.drawText(date, x - measured * 0.43f, baseline - timeSize * 0.54f, datePaint);
+                }
+            } else {
+                clockPaint.setStyle(Paint.Style.FILL);
+                clockPaint.setAlpha(alpha);
+                clockPaint.setShadowLayer(3f + 17f * shadow, 0f, 3f, 0x99000000);
+                canvas.drawText(time, x, baseline, clockPaint);
+                if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
+                    datePaint.setTextAlign(Paint.Align.CENTER);
+                    canvas.drawText(date, x, baseline - timeSize * 1.02f, datePaint);
+                }
+            }
         }
     }
 }
