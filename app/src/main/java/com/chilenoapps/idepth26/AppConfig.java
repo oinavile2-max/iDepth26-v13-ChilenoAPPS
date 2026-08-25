@@ -13,7 +13,7 @@ final class AppConfig {
     static final String VIP_MONTHLY_PRODUCT = "idepth_vip_monthly";
     static final String VIP_ANNUAL_PRODUCT = "idepth_vip_annual";
 
-    static final String VERSION_NAME = "1.7.1";
+    static final String VERSION_NAME = "1.7.2";
 
     private AppConfig() {}
 }

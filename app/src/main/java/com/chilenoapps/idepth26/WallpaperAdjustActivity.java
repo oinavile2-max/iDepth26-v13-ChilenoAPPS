@@ -1,6 +1,7 @@
 package com.chilenoapps.idepth26;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.WallpaperManager;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -18,6 +19,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -116,15 +118,18 @@ public class WallpaperAdjustActivity extends Activity {
         LinearLayout tabRow = new LinearLayout(this);
         tabRow.setOrientation(LinearLayout.HORIZONTAL);
         tabRow.setGravity(Gravity.CENTER);
-        String[] labels = {"Básico", "Tipografia", "Efeitos", "Transformar"};
+        String[] labels = {"Básico", "Relógio", "Efeitos", "Transformar"};
         tabs = new TextView[labels.length];
         for (int i = 0; i < labels.length; i++) {
             final int index = i;
             TextView tab = new TextView(this);
             tab.setText(labels[i]);
             tab.setGravity(Gravity.CENTER);
-            tab.setTextSize(12);
-            tab.setPadding(dp(4), dp(9), dp(4), dp(9));
+            tab.setTextSize(10.5f);
+            tab.setSingleLine(true);
+            tab.setMaxLines(1);
+            tab.setTextScaleX("Transformar".equals(labels[i]) ? 0.90f : 1f);
+            tab.setPadding(dp(2), dp(9), dp(2), dp(9));
             tab.setOnClickListener(v -> showTab(index));
             tabs[i] = tab;
             tabRow.addView(tab, weight());
@@ -158,20 +163,7 @@ public class WallpaperAdjustActivity extends Activity {
         Button save = button("Aplicar", true);
         save.setOnClickListener(v -> {
             preview.saveTransform();
-            refreshLiveWallpaper();
-            UsageLogger.event(this, "wallpaper_apply", prefs.getString(Prefs.SOURCE, Prefs.SOURCE_BUILTIN));
-            try {
-                Intent intent = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
-                intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
-                        new ComponentName(this, DepthWallpaperService.class));
-                startActivity(intent);
-            } catch (Exception e) {
-                try {
-                    startActivity(new Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER));
-                } catch (Exception ignored) {
-                    Toast.makeText(this, "Abra as configurações de wallpaper do Android.", Toast.LENGTH_LONG).show();
-                }
-            }
+            showLockScreenClockWarning();
         });
         actions.addView(save, weight());
         panel.addView(actions, marginTop(5));
@@ -184,13 +176,68 @@ public class WallpaperAdjustActivity extends Activity {
         showTab(0);
     }
 
+    private void showLockScreenClockWarning() {
+        if (!prefs.getBoolean(Prefs.CLOCK, true)) {
+            applyWallpaperNow();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Evite dois relógios na tela de bloqueio")
+                .setMessage("O Android pode mostrar o relógio do sistema junto com o relógio do iDepth 26. Para uma aparência limpa, recomendamos ocultar ou reduzir o relógio da tela de bloqueio nas configurações do aparelho.")
+                .setNegativeButton("Cancelar", null)
+                .setNeutralButton("Abrir ajustes do sistema", (d, w) -> openSystemLockSettings())
+                .setPositiveButton("Continuar assim", (d, w) -> applyWallpaperNow())
+                .show();
+    }
+
+    private void openSystemLockSettings() {
+        try {
+            startActivity(new Intent(Settings.ACTION_DISPLAY_SETTINGS));
+        } catch (Exception e) {
+            try {
+                startActivity(new Intent(Settings.ACTION_SETTINGS));
+            } catch (Exception ignored) {
+                Toast.makeText(this, "Abra os ajustes da tela de bloqueio do aparelho.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void applyWallpaperNow() {
+        refreshLiveWallpaper();
+        UsageLogger.event(this, "wallpaper_apply", prefs.getString(Prefs.SOURCE, Prefs.SOURCE_BUILTIN));
+        try {
+            Intent intent = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
+            intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                    new ComponentName(this, DepthWallpaperService.class));
+            startActivity(intent);
+        } catch (Exception e) {
+            try {
+                startActivity(new Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER));
+            } catch (Exception ignored) {
+                Toast.makeText(this, "Abra as configurações de wallpaper do Android.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
     private void ensureEditorDefaults() {
         SharedPreferences.Editor e = prefs.edit();
         if (!prefs.contains(Prefs.CLOCK_BEHIND)) e.putBoolean(Prefs.CLOCK_BEHIND, true);
         if (!prefs.contains(Prefs.CLOCK_X)) e.putInt(Prefs.CLOCK_X, 50);
         if (!prefs.contains(Prefs.CLOCK_Y)) e.putInt(Prefs.CLOCK_Y, 24);
         if (!prefs.contains(Prefs.CLOCK_ALPHA)) e.putInt(Prefs.CLOCK_ALPHA, 100);
-        if (!prefs.contains(Prefs.CLOCK_SHADOW)) e.putInt(Prefs.CLOCK_SHADOW, 70);
+        if (!prefs.contains(Prefs.CLOCK_SHADOW)) e.putInt(Prefs.CLOCK_SHADOW, 55);
+        if (!prefs.contains(Prefs.CLOCK_SIZE)) e.putInt(Prefs.CLOCK_SIZE, 82);
+        if (!prefs.contains(Prefs.CLOCK_STYLE)) e.putString(Prefs.CLOCK_STYLE, "solid");
+        if (!prefs.contains(Prefs.CLOCK_FORMAT)) e.putString(Prefs.CLOCK_FORMAT, "full");
+        if (!prefs.contains(Prefs.CLOCK_STROKE)) e.putInt(Prefs.CLOCK_STROKE, 3);
+        if (!prefs.contains(Prefs.CLOCK_FILL)) e.putInt(Prefs.CLOCK_FILL, 18);
+        if (!prefs.contains(Prefs.CLOCK_GLOW)) e.putInt(Prefs.CLOCK_GLOW, 45);
+        if (!prefs.contains(Prefs.CLOCK_NEON_SIZE)) e.putInt(Prefs.CLOCK_NEON_SIZE, 4);
+        if (!prefs.contains(Prefs.CLOCK_GLASS_ENABLED)) e.putBoolean(Prefs.CLOCK_GLASS_ENABLED, false);
+        if (!prefs.contains(Prefs.CLOCK_GLASS_INTENSITY)) e.putInt(Prefs.CLOCK_GLASS_INTENSITY, 35);
+        if (!prefs.contains(Prefs.CLOCK_DATE_SIZE)) e.putInt(Prefs.CLOCK_DATE_SIZE, 100);
+        if (!prefs.contains(Prefs.CLOCK_DATE_GAP)) e.putInt(Prefs.CLOCK_DATE_GAP, 10);
         if (!prefs.contains(Prefs.WALLPAPER_SCALE)) e.putFloat(Prefs.WALLPAPER_SCALE, 1f);
         if (!prefs.contains(Prefs.WALLPAPER_ROTATION)) e.putFloat(Prefs.WALLPAPER_ROTATION, 0f);
         if (!prefs.contains(Prefs.WALLPAPER_BRIGHTNESS)) e.putInt(Prefs.WALLPAPER_BRIGHTNESS, 100);
@@ -208,7 +255,7 @@ public class WallpaperAdjustActivity extends Activity {
         }
         editor.removeAllViews();
         if (index == 0) buildBasic();
-        else if (index == 1) buildTypography();
+        else if (index == 1) buildClock();
         else if (index == 2) buildEffects();
         else buildTransform();
     }
@@ -228,49 +275,35 @@ public class WallpaperAdjustActivity extends Activity {
         });
         editor.addView(behind, marginTop(2));
 
-        addIntSlider("Profundidade (wallpaper + relógio)", 0, 100,
+        addIntSlider("Profundidade do wallpaper e do relógio", 0, 100,
                 prefs.getInt(Prefs.DEPTH, 78), value -> {
                     prefs.edit().putInt(Prefs.DEPTH, value).putInt(Prefs.CLOCK_DEPTH, value).apply();
                     preview.invalidate();
                 });
 
-        addIntSlider("Posição horizontal do relógio", 8, 92,
-                prefs.getInt(Prefs.CLOCK_X, 50), value -> {
-                    prefs.edit().putInt(Prefs.CLOCK_X, value).apply();
-                    preview.invalidate();
-                });
-
-        addIntSlider("Posição vertical do relógio", 8, 64,
-                prefs.getInt(Prefs.CLOCK_Y, 24), value -> {
-                    prefs.edit().putInt(Prefs.CLOCK_Y, value).apply();
-                    preview.invalidate();
-                });
+        TextView hint = label("O relógio com profundidade já vem ativado. Desative apenas se quiser o relógio sempre na frente.");
+        hint.setTextColor(0xFFAAAAAA);
+        editor.addView(hint, marginTop(8));
     }
 
-    private void buildTypography() {
-        String currentStyle = prefs.getString(Prefs.CLOCK_STYLE, "depth_outline");
-        Button style = button("Estilo: " + ("depth_outline".equals(currentStyle) ? "Neon Depth" : "Solido"), false);
+    private void buildClock() {
+        TextView format = label("Formato do horário: 07:28");
+        format.setTextColor(0xFFFFD400);
+        editor.addView(format);
+
+        String currentStyle = normalizeClockStyle(prefs.getString(Prefs.CLOCK_STYLE, "solid"));
+        Button style = button("Estilo: " + clockStyleLabel(currentStyle), false);
         style.setOnClickListener(v -> {
-            String next = "depth_outline".equals(prefs.getString(Prefs.CLOCK_STYLE, "depth_outline"))
-                    ? "solid" : "depth_outline";
-            prefs.edit().putString(Prefs.CLOCK_STYLE, next).apply();
-            style.setText("Estilo: " + ("depth_outline".equals(next) ? "Neon Depth" : "Solido"));
+            String now = normalizeClockStyle(prefs.getString(Prefs.CLOCK_STYLE, "solid"));
+            String next = "solid".equals(now) ? "outline" : ("outline".equals(now) ? "neon" : "solid");
+            prefs.edit().putString(Prefs.CLOCK_STYLE, next).putString(Prefs.CLOCK_FORMAT, "full").apply();
+            style.setText("Estilo: " + clockStyleLabel(next));
             preview.invalidate();
         });
-        editor.addView(style);
+        editor.addView(style, marginTop(5));
 
-        String currentFormat = prefs.getString(Prefs.CLOCK_FORMAT, "hours");
-        Button format = button("Formato: " + ("hours".equals(currentFormat) ? "06h" : "06:45"), false);
-        format.setOnClickListener(v -> {
-            String next = "hours".equals(prefs.getString(Prefs.CLOCK_FORMAT, "hours"))
-                    ? "full" : "hours";
-            prefs.edit().putString(Prefs.CLOCK_FORMAT, next).apply();
-            format.setText("Formato: " + ("hours".equals(next) ? "06h" : "06:45"));
-            preview.invalidate();
-        });
-        editor.addView(format, marginTop(4));
-
-        Button font = button("Fonte: " + prefs.getString(Prefs.CLOCK_FONT, "condensed"), false);
+        String selectedFont = prefs.getString(Prefs.CLOCK_FONT, "condensed");
+        Button font = button("Fonte: " + ClockStyles.labelFor(selectedFont), false);
         font.setOnClickListener(v -> {
             String current = prefs.getString(Prefs.CLOCK_FONT, "condensed");
             int currentIndex = 0;
@@ -284,43 +317,86 @@ public class WallpaperAdjustActivity extends Activity {
             }
             String next = ClockStyles.KEYS[nextIndex];
             prefs.edit().putString(Prefs.CLOCK_FONT, next).apply();
-            font.setText("Fonte: " + next);
+            font.setText("Fonte: " + ClockStyles.labelFor(next));
             preview.invalidate();
         });
-        editor.addView(font, marginTop(4));
+        editor.addView(font, marginTop(5));
+
+        addClockSizeStepper();
+
+        addIntSlider("Posição horizontal do relógio", 8, 92,
+                prefs.getInt(Prefs.CLOCK_X, 50), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_X, value).apply();
+                    preview.invalidate();
+                });
+
+        addIntSlider("Posição vertical do relógio", 8, 64,
+                prefs.getInt(Prefs.CLOCK_Y, 24), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_Y, value).apply();
+                    preview.invalidate();
+                });
 
         CheckBox showDate = checkbox("Mostrar data", prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true));
         showDate.setOnCheckedChangeListener((buttonView, checked) -> {
             prefs.edit().putBoolean(Prefs.CLOCK_SHOW_DATE, checked).apply();
             preview.invalidate();
         });
-        editor.addView(showDate, marginTop(3));
+        editor.addView(showDate, marginTop(4));
 
-        addClockSizeStepper();
+        addIntSlider("Tamanho da data", 60, 130,
+                prefs.getInt(Prefs.CLOCK_DATE_SIZE, 100), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_DATE_SIZE, value).apply();
+                    preview.invalidate();
+                });
 
-        TextView paletteLabel = label("Paleta extraida do wallpaper atual");
+        addIntSlider("Espaçamento da data", 0, 40,
+                prefs.getInt(Prefs.CLOCK_DATE_GAP, 10), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_DATE_GAP, value).apply();
+                    preview.invalidate();
+                });
+
+        TextView paletteLabel = label("Cores extraídas do wallpaper atual");
         editor.addView(paletteLabel, marginTop(8));
         editor.addView(buildPalettePicker(), marginTop(5));
 
-        addIntSlider("Espessura do contorno", 1, 12,
-                prefs.getInt(Prefs.CLOCK_STROKE, 5), value -> {
+        addIntSlider("Espessura do contorno", 1, 10,
+                prefs.getInt(Prefs.CLOCK_STROKE, 3), value -> {
                     prefs.edit().putInt(Prefs.CLOCK_STROKE, value).apply();
                     preview.invalidate();
                 });
 
-        addIntSlider("Preenchimento do relogio", 0, 100,
-                prefs.getInt(Prefs.CLOCK_FILL, 8), value -> {
+        addIntSlider("Preenchimento do relógio", 0, 100,
+                prefs.getInt(Prefs.CLOCK_FILL, 18), value -> {
                     prefs.edit().putInt(Prefs.CLOCK_FILL, value).apply();
                     preview.invalidate();
                 });
 
-        addIntSlider("Brilho Neon", 0, 100,
-                prefs.getInt(Prefs.CLOCK_GLOW, 62), value -> {
+        addIntSlider("Espessura do neon", 1, 12,
+                prefs.getInt(Prefs.CLOCK_NEON_SIZE, 4), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_NEON_SIZE, value).apply();
+                    preview.invalidate();
+                });
+
+        addIntSlider("Intensidade do neon", 0, 100,
+                prefs.getInt(Prefs.CLOCK_GLOW, 45), value -> {
                     prefs.edit().putInt(Prefs.CLOCK_GLOW, value).apply();
                     preview.invalidate();
                 });
 
-        addIntSlider("Opacidade do relogio", 25, 100,
+        CheckBox glass = checkbox("Efeito vidro no relógio", prefs.getBoolean(Prefs.CLOCK_GLASS_ENABLED, false));
+        glass.setOnCheckedChangeListener((buttonView, checked) -> {
+            prefs.edit().putBoolean(Prefs.CLOCK_GLASS_ENABLED, checked).apply();
+            preview.invalidate();
+        });
+        editor.addView(glass, marginTop(4));
+
+        addIntSlider("Intensidade do vidro", 0, 100,
+                prefs.getInt(Prefs.CLOCK_GLASS_INTENSITY, 35), value -> {
+                    prefs.edit().putInt(Prefs.CLOCK_GLASS_INTENSITY, value).apply();
+                    preview.invalidate();
+                });
+
+        addIntSlider("Opacidade do relógio", 25, 100,
                 prefs.getInt(Prefs.CLOCK_ALPHA, 100), value -> {
                     prefs.edit().putInt(Prefs.CLOCK_ALPHA, value).apply();
                     preview.invalidate();
@@ -331,6 +407,18 @@ public class WallpaperAdjustActivity extends Activity {
                     prefs.edit().putInt(Prefs.CLOCK_SHADOW, value).apply();
                     preview.invalidate();
                 });
+    }
+
+    private String normalizeClockStyle(String style) {
+        if ("depth_outline".equals(style)) return "neon";
+        if (!"solid".equals(style) && !"outline".equals(style) && !"neon".equals(style)) return "solid";
+        return style;
+    }
+
+    private String clockStyleLabel(String style) {
+        if ("outline".equals(style)) return "Contorno";
+        if ("neon".equals(style)) return "Neon";
+        return "Sólido";
     }
 
     private void buildEffects() {
@@ -390,16 +478,16 @@ public class WallpaperAdjustActivity extends Activity {
 
         Button minus = smallButton("−");
         Button plus = smallButton("+");
-        TextView value = valuePill(prefs.getInt(Prefs.CLOCK_SIZE, 100) + "%");
+        TextView value = valuePill(prefs.getInt(Prefs.CLOCK_SIZE, 82) + "%");
 
         minus.setOnClickListener(v -> {
-            int next = Math.max(60, prefs.getInt(Prefs.CLOCK_SIZE, 100) - 5);
+            int next = Math.max(60, prefs.getInt(Prefs.CLOCK_SIZE, 82) - 5);
             prefs.edit().putInt(Prefs.CLOCK_SIZE, next).apply();
             value.setText(next + "%");
             preview.invalidate();
         });
         plus.setOnClickListener(v -> {
-            int next = Math.min(220, prefs.getInt(Prefs.CLOCK_SIZE, 100) + 5);
+            int next = Math.min(150, prefs.getInt(Prefs.CLOCK_SIZE, 82) + 5);
             prefs.edit().putInt(Prefs.CLOCK_SIZE, next).apply();
             value.setText(next + "%");
             preview.invalidate();
@@ -471,12 +559,7 @@ public class WallpaperAdjustActivity extends Activity {
         auto.setGravity(Gravity.CENTER);
         auto.setBackground(rounded(0xFF242424, dp(13), 0xFF4A4A4A));
         auto.setOnClickListener(v -> {
-            prefs.edit().putString(Prefs.CLOCK_COLOR_MODE, "auto")
-                    .putString(Prefs.CLOCK_STYLE, "depth_outline")
-                    .putString(Prefs.CLOCK_FORMAT, "hours")
-                    .putInt(Prefs.CLOCK_STROKE, 5)
-                    .putInt(Prefs.CLOCK_FILL, 8)
-                    .putInt(Prefs.CLOCK_GLOW, 62).apply();
+            prefs.edit().putString(Prefs.CLOCK_COLOR_MODE, "auto").apply();
             preview.invalidate();
         });
         row.addView(auto, new LinearLayout.LayoutParams(dp(52), dp(42)));
@@ -617,6 +700,7 @@ public class WallpaperAdjustActivity extends Activity {
         private final Paint imagePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         private final Paint timePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint datePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint glassPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final ScaleGestureDetector scaleDetector;
         private final GestureDetector gestureDetector;
         private final RectF clockBounds = new RectF();
@@ -631,6 +715,12 @@ public class WallpaperAdjustActivity extends Activity {
         private float lastY;
         private boolean draggingWallpaper;
         private boolean draggingClock;
+        private int dragClockX;
+        private int dragClockY;
+        private int dragStartClockX;
+        private int dragStartClockY;
+        private float clockDragStartX;
+        private float clockDragStartY;
 
         AdjustView() {
             super(WallpaperAdjustActivity.this);
@@ -639,6 +729,8 @@ public class WallpaperAdjustActivity extends Activity {
             posY = clamp(prefs.getFloat(Prefs.WALLPAPER_POSITION_Y, 0f), -1f, 1f);
             userScale = clamp(prefs.getFloat(Prefs.WALLPAPER_SCALE, 1f), 1f, 2f);
             rotation = clamp(prefs.getFloat(Prefs.WALLPAPER_ROTATION, 0f), -10f, 10f);
+            dragClockX = prefs.getInt(Prefs.CLOCK_X, 50);
+            dragClockY = prefs.getInt(Prefs.CLOCK_Y, 24);
             loadLayers();
 
             scaleDetector = new ScaleGestureDetector(WallpaperAdjustActivity.this,
@@ -739,7 +831,11 @@ public class WallpaperAdjustActivity extends Activity {
             float bw = bitmap.getWidth();
             float bh = bitmap.getHeight();
             float base = Math.max(cw / bw, ch / bh);
-            float scale = base * userScale;
+
+            float panStrength = Math.max(Math.abs(posX), Math.abs(posY));
+            float panScale = 1f + 0.16f * panStrength;
+            float scale = base * userScale * panScale;
+
             float dw = bw * scale;
             float dh = bh * scale;
             float maxX = Math.max(0f, (dw - cw) / 2f);
@@ -778,26 +874,28 @@ public class WallpaperAdjustActivity extends Activity {
         private void drawClock(Canvas canvas) {
             float width = canvas.getWidth();
             float height = canvas.getHeight();
-            int size = prefs.getInt(Prefs.CLOCK_SIZE, 100);
-            int xPercent = prefs.getInt(Prefs.CLOCK_X, 50);
-            int yPercent = prefs.getInt(Prefs.CLOCK_Y, 24);
+            int size = prefs.getInt(Prefs.CLOCK_SIZE, 82);
+            int xPercent = draggingClock ? dragClockX : prefs.getInt(Prefs.CLOCK_X, 50);
+            int yPercent = draggingClock ? dragClockY : prefs.getInt(Prefs.CLOCK_Y, 24);
             float overallDepth = prefs.getInt(Prefs.DEPTH, 78) / 100f;
             float clockDepth = prefs.getInt(Prefs.CLOCK_DEPTH, 78) / 100f;
             float effectiveDepth = overallDepth * clockDepth;
 
-            String style = prefs.getString(Prefs.CLOCK_STYLE, "depth_outline");
-            String format = prefs.getString(Prefs.CLOCK_FORMAT, "hours");
-            boolean outline = "depth_outline".equals(style);
-            boolean hoursOnly = "hours".equals(format);
+            String style = normalizeClockStyle(prefs.getString(Prefs.CLOCK_STYLE, "solid"));
+            boolean outline = "outline".equals(style) || "neon".equals(style);
+            boolean neon = "neon".equals(style);
 
-            float baseFactor = outline ? (hoursOnly ? 0.43f : 0.285f) : 0.205f;
-            float timeSize = Math.max(48f, width * baseFactor * (size / 100f));
-            timeSize *= 1f + effectiveDepth * 0.025f;
-            float dateSize = Math.max(14f, timeSize * (outline ? 0.115f : 0.165f));
+            float timeSize = Math.max(46f, width * 0.205f * (size / 100f));
+            timeSize *= 1f + effectiveDepth * 0.018f;
 
-            int color = outline
+            int dateScale = prefs.getInt(Prefs.CLOCK_DATE_SIZE, 100);
+            float dateSize = Math.max(13f, timeSize * 0.165f * (dateScale / 100f));
+            int dateGap = prefs.getInt(Prefs.CLOCK_DATE_GAP, 10);
+
+            int color = neon
                     ? ThemePalette.neonClockColor(prefs, background, xPercent, yPercent, size)
                     : ThemePalette.clockColor(prefs, background, xPercent, yPercent, size);
+
             String font = prefs.getString(Prefs.CLOCK_FONT, "condensed");
             int alpha = Math.round(255f * prefs.getInt(Prefs.CLOCK_ALPHA, 100) / 100f);
             float shadow = prefs.getInt(Prefs.CLOCK_SHADOW, 55) / 100f;
@@ -807,34 +905,76 @@ public class WallpaperAdjustActivity extends Activity {
             timePaint.setColor(color);
             timePaint.setTextSize(timeSize);
 
+            datePaint.setTextAlign(Paint.Align.CENTER);
             datePaint.setTypeface(ClockStyles.dateTypeface(font));
             datePaint.setColor(color);
             datePaint.setAlpha(alpha);
             datePaint.setTextSize(dateSize);
 
             Date now = new Date();
-            String time = hoursOnly
-                    ? new SimpleDateFormat("HH'h'", Locale.getDefault()).format(now)
-                    : new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
-            String date = new SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+            String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now);
+            String date = new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault())
                     .format(now).toUpperCase(Locale.getDefault());
 
             float centerX = width * (xPercent / 100f);
-            float baseline = height * (yPercent / 100f) + timeSize * 0.82f;
+            float baseline = height * (yPercent / 100f) + timeSize * 0.80f;
+            float dateBaseline = baseline - timeSize * 0.92f - dp(dateGap);
+
+            float timeWidth = timePaint.measureText(time);
+            float dateWidth = datePaint.measureText(date);
+            float panelWidth = Math.max(timeWidth, dateWidth) + dp(28);
+            float panelTop = dateBaseline - dateSize * 1.10f - dp(8);
+            float panelBottom = baseline + timeSize * 0.20f + dp(10);
+            RectF glassRect = new RectF(
+                    centerX - panelWidth / 2f,
+                    panelTop,
+                    centerX + panelWidth / 2f,
+                    panelBottom
+            );
+
+            if (prefs.getBoolean(Prefs.CLOCK_GLASS_ENABLED, false)) {
+                int intensity = prefs.getInt(Prefs.CLOCK_GLASS_INTENSITY, 35);
+                int fillAlpha = 10 + Math.round(intensity * 0.55f);
+                int strokeAlpha = 30 + Math.round(intensity * 0.70f);
+
+                glassPaint.setStyle(Paint.Style.FILL);
+                glassPaint.setColor(Color.argb(Math.min(95, fillAlpha), 255, 255, 255));
+                glassPaint.setShadowLayer(dp(4) + dp(10) * intensity / 100f, 0f, dp(3), 0x66000000);
+                canvas.drawRoundRect(glassRect, dp(22), dp(22), glassPaint);
+                glassPaint.clearShadowLayer();
+
+                glassPaint.setStyle(Paint.Style.STROKE);
+                glassPaint.setStrokeWidth(dp(1));
+                glassPaint.setColor(ThemePalette.withAlpha(color, Math.min(150, strokeAlpha)));
+                canvas.drawRoundRect(glassRect, dp(22), dp(22), glassPaint);
+                glassPaint.setStyle(Paint.Style.FILL);
+            }
 
             if (outline) {
-                int stroke = prefs.getInt(Prefs.CLOCK_STROKE, 5);
-                int fill = prefs.getInt(Prefs.CLOCK_FILL, 8);
-                float glow = prefs.getInt(Prefs.CLOCK_GLOW, 62) / 100f;
-                float strokePx = Math.max(2f, timeSize * (0.0065f + stroke * 0.0017f));
+                int stroke = prefs.getInt(Prefs.CLOCK_STROKE, 3);
+                int fill = prefs.getInt(Prefs.CLOCK_FILL, 18);
+                float glow = neon ? prefs.getInt(Prefs.CLOCK_GLOW, 45) / 100f : 0f;
+                int neonSize = prefs.getInt(Prefs.CLOCK_NEON_SIZE, 4);
+
+                float strokePx = Math.max(1.5f, timeSize * (0.0048f + stroke * 0.00135f));
+                float glowRadius = neon
+                        ? dp(2) + timeSize * (0.014f + neonSize * 0.0065f) * glow
+                        : 0f;
 
                 timePaint.setStyle(Paint.Style.STROKE);
                 timePaint.setStrokeWidth(strokePx);
                 timePaint.setAlpha(alpha);
-                timePaint.setShadowLayer(
-                        2f + timeSize * 0.065f * glow,
-                        0f, 0f,
-                        ThemePalette.withAlpha(color, Math.min(220, 80 + Math.round(135f * glow))));
+
+                if (neon && glow > 0f) {
+                    timePaint.setShadowLayer(
+                            glowRadius,
+                            0f,
+                            0f,
+                            ThemePalette.withAlpha(color, Math.min(230, 75 + Math.round(150f * glow))));
+                } else {
+                    timePaint.clearShadowLayer();
+                }
+
                 canvas.drawText(time, centerX, baseline, timePaint);
 
                 if (fill > 0) {
@@ -843,38 +983,33 @@ public class WallpaperAdjustActivity extends Activity {
                     timePaint.setAlpha(Math.round(alpha * (fill / 100f)));
                     canvas.drawText(time, centerX, baseline, timePaint);
                 }
-
-                timePaint.setStyle(Paint.Style.FILL);
-                timePaint.setAlpha(alpha);
-                timePaint.setStrokeWidth(0f);
-
-                if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
-                    float measured = timePaint.measureText(time);
-                    datePaint.setTextAlign(Paint.Align.LEFT);
-                    datePaint.setShadowLayer(2f + 7f * shadow, 0f, 2f, 0x88000000);
-                    canvas.drawText(date,
-                            centerX - measured * 0.43f,
-                            baseline - timeSize * 0.54f,
-                            datePaint);
-                }
             } else {
                 timePaint.setStyle(Paint.Style.FILL);
                 timePaint.setAlpha(alpha);
-                timePaint.setShadowLayer(3f + 17f * shadow + 8f * effectiveDepth,
-                        0f, 2f + 3f * shadow, 0xA0000000);
+                timePaint.setShadowLayer(
+                        2f + 10f * shadow + 5f * effectiveDepth,
+                        0f,
+                        2f + 2f * shadow,
+                        0x95000000);
                 canvas.drawText(time, centerX, baseline, timePaint);
-                if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
-                    datePaint.setTextAlign(Paint.Align.CENTER);
-                    datePaint.setShadowLayer(2f + 9f * shadow, 0f, 1f + 2f * shadow, 0x85000000);
-                    canvas.drawText(date, centerX, baseline - timeSize * 1.06f, datePaint);
-                }
             }
 
-            float textWidth = Math.max(timePaint.measureText(time), datePaint.measureText(date));
-            clockBounds.set(centerX - textWidth * 0.62f,
-                    baseline - timeSize * 1.10f,
-                    centerX + textWidth * 0.62f,
-                    baseline + timeSize * 0.22f);
+            timePaint.clearShadowLayer();
+            timePaint.setStyle(Paint.Style.FILL);
+            timePaint.setAlpha(alpha);
+
+            if (prefs.getBoolean(Prefs.CLOCK_SHOW_DATE, true)) {
+                datePaint.setShadowLayer(2f + 7f * shadow, 0f, 1f + 2f * shadow, 0x80000000);
+                canvas.drawText(date, centerX, dateBaseline, datePaint);
+                datePaint.clearShadowLayer();
+            }
+
+            clockBounds.set(
+                    glassRect.left,
+                    Math.min(glassRect.top, dateBaseline - dateSize * 1.2f),
+                    glassRect.right,
+                    glassRect.bottom
+            );
         }
 
         @Override
@@ -887,18 +1022,35 @@ public class WallpaperAdjustActivity extends Activity {
                     case MotionEvent.ACTION_DOWN:
                         lastX = event.getX();
                         lastY = event.getY();
-                        draggingClock = prefs.getBoolean(Prefs.CLOCK, true) && clockBounds.contains(lastX, lastY);
-                        draggingWallpaper = !draggingClock;
+
+                        if (prefs.getBoolean(Prefs.CLOCK, true) && clockBounds.contains(lastX, lastY)) {
+                            draggingClock = true;
+                            draggingWallpaper = false;
+                            clockDragStartX = lastX;
+                            clockDragStartY = lastY;
+                            dragStartClockX = prefs.getInt(Prefs.CLOCK_X, 50);
+                            dragStartClockY = prefs.getInt(Prefs.CLOCK_Y, 24);
+                            dragClockX = dragStartClockX;
+                            dragClockY = dragStartClockY;
+                        } else {
+                            draggingClock = false;
+                            draggingWallpaper = true;
+                        }
                         return true;
+
                     case MotionEvent.ACTION_MOVE:
                         float dx = event.getX() - lastX;
                         float dy = event.getY() - lastY;
                         lastX = event.getX();
                         lastY = event.getY();
+
                         if (draggingClock) {
-                            int x = clampInt(Math.round(event.getX() / Math.max(1f, getWidth()) * 100f), 8, 92);
-                            int y = clampInt(Math.round(event.getY() / Math.max(1f, getHeight()) * 100f), 8, 64);
-                            prefs.edit().putInt(Prefs.CLOCK_X, x).putInt(Prefs.CLOCK_Y, y).apply();
+                            float totalDx = event.getX() - clockDragStartX;
+                            float totalDy = event.getY() - clockDragStartY;
+                            int x = dragStartClockX + Math.round(totalDx / Math.max(1f, getWidth()) * 100f);
+                            int y = dragStartClockY + Math.round(totalDy / Math.max(1f, getHeight()) * 100f);
+                            dragClockX = clampInt(x, 8, 92);
+                            dragClockY = clampInt(y, 8, 64);
                             invalidate();
                         } else if (draggingWallpaper && background != null) {
                             float[] overflow = currentOverflow();
@@ -907,10 +1059,18 @@ public class WallpaperAdjustActivity extends Activity {
                             invalidate();
                         }
                         return true;
+
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
+                        if (draggingClock) {
+                            prefs.edit()
+                                    .putInt(Prefs.CLOCK_X, dragClockX)
+                                    .putInt(Prefs.CLOCK_Y, dragClockY)
+                                    .apply();
+                        }
                         draggingClock = false;
                         draggingWallpaper = false;
+                        invalidate();
                         return true;
                 }
             }
@@ -938,7 +1098,7 @@ public class WallpaperAdjustActivity extends Activity {
             prefs.edit()
                     .putInt(Prefs.CLOCK_X, 50)
                     .putInt(Prefs.CLOCK_Y, 24)
-                    .putInt(Prefs.CLOCK_SIZE, 100)
+                    .putInt(Prefs.CLOCK_SIZE, 82)
                     .putInt(Prefs.CLOCK_ALPHA, 100)
                     .putInt(Prefs.CLOCK_SHADOW, 70)
                     .putInt(Prefs.DEPTH, 78)
@@ -949,11 +1109,16 @@ public class WallpaperAdjustActivity extends Activity {
                     .putInt(Prefs.WALLPAPER_DIM, 0)
                     .putInt(Prefs.FOREGROUND_MOTION, 0)
                     .putString(Prefs.CLOCK_COLOR_MODE, "auto")
-                    .putString(Prefs.CLOCK_STYLE, "depth_outline")
-                    .putString(Prefs.CLOCK_FORMAT, "hours")
+                    .putString(Prefs.CLOCK_STYLE, "solid")
+                    .putString(Prefs.CLOCK_FORMAT, "full")
                     .putInt(Prefs.CLOCK_STROKE, 5)
                     .putInt(Prefs.CLOCK_FILL, 8)
-                    .putInt(Prefs.CLOCK_GLOW, 62)
+                    .putInt(Prefs.CLOCK_GLOW, 45)
+                    .putInt(Prefs.CLOCK_NEON_SIZE, 4)
+                    .putBoolean(Prefs.CLOCK_GLASS_ENABLED, false)
+                    .putInt(Prefs.CLOCK_GLASS_INTENSITY, 35)
+                    .putInt(Prefs.CLOCK_DATE_SIZE, 100)
+                    .putInt(Prefs.CLOCK_DATE_GAP, 10)
                     .apply();
             saveTransform();
             invalidate();

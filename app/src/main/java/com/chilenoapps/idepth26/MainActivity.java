@@ -201,7 +201,7 @@ public class MainActivity extends Activity {
         if (!prefs.contains(Prefs.CLOCK_BEHIND)) e.putBoolean(Prefs.CLOCK_BEHIND, true);
         if (!prefs.contains(Prefs.CLOCK_DEPTH)) e.putInt(Prefs.CLOCK_DEPTH, 75);
         if (!prefs.contains(Prefs.CLOCK_FONT)) e.putString(Prefs.CLOCK_FONT, "condensed");
-        if (!prefs.contains(Prefs.CLOCK_SIZE)) e.putInt(Prefs.CLOCK_SIZE, 100);
+        if (!prefs.contains(Prefs.CLOCK_SIZE)) e.putInt(Prefs.CLOCK_SIZE, 82);
         if (!prefs.contains(Prefs.CLOCK_X)) e.putInt(Prefs.CLOCK_X, 50);
         if (!prefs.contains(Prefs.CLOCK_Y)) e.putInt(Prefs.CLOCK_Y, 24);
         if (!prefs.contains(Prefs.CLOCK_ALPHA)) e.putInt(Prefs.CLOCK_ALPHA, 100);
@@ -214,6 +214,22 @@ public class MainActivity extends Activity {
         if (!prefs.contains(Prefs.CLOCK_COLOR_MODE)) e.putString(Prefs.CLOCK_COLOR_MODE, "auto");
         if (!prefs.contains(Prefs.CLOCK_SHOW_DATE)) e.putBoolean(Prefs.CLOCK_SHOW_DATE, true);
         if (!prefs.contains(Prefs.THEME_AUTO)) e.putBoolean(Prefs.THEME_AUTO, true);
+
+        if (!prefs.getBoolean(Prefs.CLOCK_DESIGN_V2_MIGRATED, false)) {
+            e.putInt(Prefs.CLOCK_SIZE, 82)
+                    .putString(Prefs.CLOCK_STYLE, "solid")
+                    .putString(Prefs.CLOCK_FORMAT, "full")
+                    .putInt(Prefs.CLOCK_STROKE, 3)
+                    .putInt(Prefs.CLOCK_FILL, 18)
+                    .putInt(Prefs.CLOCK_GLOW, 45)
+                    .putInt(Prefs.CLOCK_NEON_SIZE, 4)
+                    .putBoolean(Prefs.CLOCK_GLASS_ENABLED, false)
+                    .putInt(Prefs.CLOCK_GLASS_INTENSITY, 35)
+                    .putInt(Prefs.CLOCK_DATE_SIZE, 100)
+                    .putInt(Prefs.CLOCK_DATE_GAP, 10)
+                    .putBoolean(Prefs.CLOCK_DESIGN_V2_MIGRATED, true);
+        }
+
         e.apply();
     }
 
@@ -436,7 +452,7 @@ public class MainActivity extends Activity {
         back.setOnClickListener(v -> showCategories());
         root.addView(back);
         addHeader(root, category, "");
-        if ("Depth offline".equals(category)) {
+        if ("Profundidade offline".equals(category)) {
             for (int i = 0; i < BuiltInWallpapers.count(); i++) root.addView(buildBuiltinListCard(i), marginTop(10));
         } else {
             for (RemoteWallpaper w : remote) if (category.equals(w.category)) root.addView(buildRemoteListCard(w), marginTop(10));
@@ -523,7 +539,7 @@ public class MainActivity extends Activity {
         premiumText.setOrientation(LinearLayout.VERTICAL);
         premiumText.setPadding(dp(12), 0, dp(8), 0);
         premiumText.addView(text("Premium", 14, true));
-        TextView unlocked = text(VipManager.isVip(this) ? "Unlocked" : "Conheça o VIP", 20, true);
+        TextView unlocked = text(VipManager.isVip(this) ? "Desbloqueado" : "Conheça o VIP", 20, true);
         unlocked.setTextColor(UI_YELLOW);
         premiumText.addView(unlocked, marginTop(2));
         premiumText.addView(muted(VipManager.isVip(this)
@@ -576,7 +592,7 @@ public class MainActivity extends Activity {
         clockControls.addView(text("Cor", 13, true), marginTop(10));
         clockControls.addView(buildClockColorPicker(), marginTop(7));
         clockControls.addView(text("Tamanho", 13, true), marginTop(10));
-        clockControls.addView(seek(prefs.getInt(Prefs.CLOCK_SIZE, 100), 60, 220,
+        clockControls.addView(seek(prefs.getInt(Prefs.CLOCK_SIZE, 82), 60, 150,
                 value -> { prefs.edit().putInt(Prefs.CLOCK_SIZE, value).apply(); notifyWallpaperRefresh(); }));
         clockControls.addView(text("Posição horizontal", 13, true), marginTop(7));
         clockControls.addView(seek(prefs.getInt(Prefs.CLOCK_X, 50), 8, 92,
@@ -584,33 +600,44 @@ public class MainActivity extends Activity {
         clockControls.addView(text("Posição vertical", 13, true), marginTop(7));
         clockControls.addView(seek(prefs.getInt(Prefs.CLOCK_Y, 24), 8, 64,
                 value -> { prefs.edit().putInt(Prefs.CLOCK_Y, value).apply(); notifyWallpaperRefresh(); }));
-        root.addView(settingsGroup("◷", "Clock Settings", clockControls, false), marginTop(12));
+        TextView lockHint = muted("Se aparecerem dois relógios na tela de bloqueio, oculte ou reduza o relógio do sistema nos ajustes do aparelho.");
+        clockControls.addView(lockHint, marginTop(10));
+
+        Button lockSettings = secondaryButton("Abrir ajustes da tela de bloqueio");
+        lockSettings.setOnClickListener(v -> openSystemLockSettings());
+        clockControls.addView(lockSettings, marginTop(8));
+
+        Button advancedClock = primaryButton("Personalizar relógio no Studio");
+        advancedClock.setOnClickListener(v -> startActivity(new Intent(this, WallpaperAdjustActivity.class)));
+        clockControls.addView(advancedClock, marginTop(8));
+
+        root.addView(settingsGroup("◷", "Ajustes do relógio", clockControls, false), marginTop(12));
 
         LinearLayout animation = settingsContent();
         animation.addView(labeledSeek("Profundidade", Prefs.DEPTH, 78));
-        animation.addView(labeledSeek("Parallax", Prefs.PARALLAX, 68), marginTop(8));
+        animation.addView(labeledSeek("Paralaxe", Prefs.PARALLAX, 68), marginTop(8));
         animation.addView(labeledSeek("Profundidade do relógio", Prefs.CLOCK_DEPTH, 75), marginTop(8));
         animation.addView(labeledSeek("Zoom de proteção", Prefs.ZOOM, 40), marginTop(8));
-        Button studio = primaryButton("Abrir Studio / Preview");
+        Button studio = primaryButton("Abrir Studio / Prévia");
         studio.setOnClickListener(v -> startActivity(new Intent(this, WallpaperAdjustActivity.class)));
         animation.addView(studio, marginTop(12));
-        root.addView(settingsGroup("✦", "Animation Settings", animation, false), marginTop(12));
+        root.addView(settingsGroup("✦", "Animações e profundidade", animation, false), marginTop(12));
 
         LinearLayout autoControls = settingsContent();
-        CheckBox auto = checkbox("Auto Wallpaper Changer", prefs.getBoolean(Prefs.AUTO, false));
+        CheckBox auto = checkbox("Troca automática de wallpaper", prefs.getBoolean(Prefs.AUTO, false));
         auto.setOnCheckedChangeListener((b, checked) -> {
             prefs.edit().putBoolean(Prefs.AUTO, checked).apply();
             scheduleAutoChange(checked);
         });
         autoControls.addView(auto);
-        root.addView(settingsGroup("◴", "Auto Wallpaper Settings", autoControls, false), marginTop(12));
+        root.addView(settingsGroup("◴", "Troca automática", autoControls, false), marginTop(12));
 
         LinearLayout support = settingsContent();
         support.addView(muted("iDepth 26 • versão " + AppConfig.VERSION_NAME));
         Button vip = secondaryButton("Gerenciar plano VIP");
         vip.setOnClickListener(v -> startActivity(new Intent(this, VipActivity.class)));
         support.addView(vip, marginTop(8));
-        root.addView(settingsGroup("?", "Support & About", support, false), marginTop(12));
+        root.addView(settingsGroup("?", "Suporte e sobre o app", support, false), marginTop(12));
 
         setPage(root);
     }
@@ -978,7 +1005,7 @@ public class MainActivity extends Activity {
         info.setPadding(dp(13), dp(8), 0, dp(5));
         card.addView(info, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         info.addView(text(BuiltInWallpapers.NAMES[index], 16, true));
-        info.addView(muted("Depth offline • camadas reais"), marginTop(4));
+        info.addView(muted("Profundidade offline • camadas reais"), marginTop(4));
         Button use = primaryButton("Usar");
         use.setOnClickListener(v -> selectBuiltin(index));
         info.addView(use, marginTop(10));
@@ -1361,6 +1388,18 @@ public class MainActivity extends Activity {
             adminTapWindowStart = 0L;
             UsageLogger.event(this, "admin_gesture", "");
             startActivity(new Intent(this, AdminActivity.class));
+        }
+    }
+
+    private void openSystemLockSettings() {
+        try {
+            startActivity(new Intent(Settings.ACTION_DISPLAY_SETTINGS));
+        } catch (Exception e) {
+            try {
+                startActivity(new Intent(Settings.ACTION_SETTINGS));
+            } catch (Exception ignored) {
+                Toast.makeText(this, "Abra os ajustes da tela de bloqueio do aparelho.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 

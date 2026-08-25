@@ -32,7 +32,7 @@ final class Prefs {
 
     static final String DEPTH = "depth_strength";
     static final String PARALLAX = "parallax_strength";
-    static final String ZOOM = "zoom"; // compatibilidade com versões anteriores
+    static final String ZOOM = "zoom"; // compatibilidade com versÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âµes anteriores
     static final String WALLPAPER_POSITION_X = "wallpaper_position_x";
     static final String WALLPAPER_POSITION_Y = "wallpaper_position_y";
     static final String WALLPAPER_SCALE = "wallpaper_scale";
@@ -60,6 +60,12 @@ final class Prefs {
     static final String CLOCK_STROKE = "clock_stroke"; // 1..12
     static final String CLOCK_FILL = "clock_fill"; // 0..100
     static final String CLOCK_GLOW = "clock_glow"; // 0..100
+    static final String CLOCK_NEON_SIZE = "clock_neon_size"; // 1..12
+    static final String CLOCK_GLASS_ENABLED = "clock_glass_enabled";
+    static final String CLOCK_GLASS_INTENSITY = "clock_glass_intensity"; // 0..100
+    static final String CLOCK_DATE_SIZE = "clock_date_size"; // 60..130
+    static final String CLOCK_DATE_GAP = "clock_date_gap"; // 0..40 dp
+    static final String CLOCK_DESIGN_V2_MIGRATED = "clock_design_v2_migrated";
 
     static final String THEME_AUTO = "theme_auto";
     static final String THEME_ACCENT = "theme_accent";
