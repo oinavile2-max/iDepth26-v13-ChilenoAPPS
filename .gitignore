@@ -8,3 +8,5 @@ local.properties
 supabase/ADMIN_CREDENTIAL_HELPER.html
 erro-v16.txt
 *.log
+_backup_catalogo_telegram_*/
+_fix_catalogo/

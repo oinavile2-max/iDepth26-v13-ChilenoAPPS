@@ -1,9 +1,30 @@
-iDepth26 - HOTFIX avisos galeria + popup VIP
+iDepth 26 - HOTFIX CATALOGO TELEGRAM
 
-Este hotfix corrige o PATCH anterior que usou um MainActivity de outra revisão e gerou erros em Prefs.CLOCK_X, CLOCK_ALPHA, CLOCK_SHADOW etc.
+OBJETIVO
+- Fazer os wallpapers publicados pelo Telegram aparecerem na aba Online.
+- Novidades remotas aparecem primeiro.
+- Os 5 wallpapers gratuitos continuam sendo os 5 primeiros do pack Online fixo.
+- Wallpapers publicados pelo Telegram entram como VIP.
+- Cache remoto continua funcionando.
 
-Este pacote substitui SOMENTE MainActivity.java e foi baseado na v1.6.1/FIX1.
-Nao refatora editor, Prefs, ThemePalette, Supabase, Telegram ou wallpapers offline.
+COMO APLICAR
+1. Extraia este ZIP na raiz do projeto:
+   C:\Users\Admin\StudioProjects\iDepth26-v13-ChilenoAPPS
 
-Aplicar na raiz do projeto e substituir o arquivo existente.
-Depois compilar normalmente.
+2. No Terminal do Android Studio rode:
+   powershell -ExecutionPolicy Bypass -File .\APLICAR_FIX_CATALOGO_TELEGRAM.ps1
+
+3. O script compila o APK, tenta salvar o hotfix no GitHub e copia para a area de transferencia o codigo da nova Edge Function.
+
+4. No Supabase:
+   Edge Functions -> Deploy a new function -> Via Editor
+   Nome: wallpaper-catalog
+   Ctrl+V
+   Deploy
+   Verify JWT = OFF
+
+5. No app:
+   Online -> Buscar novas atualizacoes
+
+APK gerado na Area de Trabalho:
+iDepth26-v1.7.0-CATALOGO-TELEGRAM-ChilenoAPPS.apk
